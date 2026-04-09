@@ -1,0 +1,61 @@
+{
+  "name": "Temporal Location Shift",
+  "description": "Tests that NeuroMem tracks temporal validity — when a user moves cities, only the current location should be active.",
+  "category": "temporal",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey, I'm Priya. I currently live in San Francisco and work as a product manager."
+    },
+    {
+      "role": "assistant",
+      "content": "Hi Priya! San Francisco is a great city for product management. What kind of products do you work on?"
+    },
+    {
+      "role": "user",
+      "content": "I have a cat named Luna and I really enjoy hiking on weekends."
+    },
+    {
+      "role": "assistant",
+      "content": "Luna sounds lovely! SF has amazing hiking spots — Lands End and the Marin Headlands are gorgeous."
+    },
+    {
+      "role": "user",
+      "content": "Big news — I just moved to Austin, Texas last week for a new opportunity!"
+    },
+    {
+      "role": "assistant",
+      "content": "Congratulations on the move to Austin! It's a booming tech hub. How are you settling in?"
+    },
+    {
+      "role": "user",
+      "content": "I started a new role at a startup called GreenLeaf here in Austin."
+    },
+    {
+      "role": "assistant",
+      "content": "GreenLeaf sounds exciting! What does the startup focus on?"
+    }
+  ],
+  "test_queries": [
+    {
+      "query": "Where does Priya live?",
+      "expected_facts": ["Austin"],
+      "must_not_contain": ["San Francisco"],
+      "description": "Should return Austin, NOT San Francisco. Temporal validity must show only current location."
+    },
+    {
+      "query": "Where does Priya work?",
+      "expected_facts": ["GreenLeaf"],
+      "must_not_contain": [],
+      "description": "Should return the current employer GreenLeaf."
+    },
+    {
+      "query": "Does Priya have any pets?",
+      "expected_facts": ["cat", "Luna"],
+      "must_not_contain": [],
+      "description": "Non-temporal facts should persist correctly."
+    }
+  ],
+  "rag_expected_failure": "Standard RAG retrieves both 'lives in San Francisco' and 'moved to Austin' with similar embeddings, causing hallucinated dual-location answers.",
+  "neuromem_advantage": "Knowledge Graph valid_from/valid_to timestamps + Ebbinghaus decay on old location"
+}

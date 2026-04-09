@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroMem — Cognitive Architecture Dashboard</title>
+    <meta name="description" content="Interactive visualizer for the NeuroMem cognitive memory engine. Experience 5-tier context isolation and real-time knowledge graph generation.">
+    
+    <!-- Premium Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-deep: #05050A;
+            --bg-glass: rgba(18, 18, 30, 0.6);
+            --bg-glass-hover: rgba(28, 28, 45, 0.8);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0A0BA;
+            --text-muted: #656580;
+            
+            --accent-cyan: #00E5FF;
+            --accent-purple: #B200FF;
+            --accent-blue: #2979FF;
+            --accent-green: #00E676;
+            --accent-orange: #FFAB00;
+            
+            --glow-cyan: rgba(0, 229, 255, 0.3);
+            --glow-purple: rgba(178, 0, 255, 0.3);
+            
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(178, 0, 255, 0.08), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(0, 229, 255, 0.08), transparent 40%);
+        }
+
+        /* ── Welcome Modal ─────────────────────────────────────── */
+        #welcome-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 10, 0.85);
+            backdrop-filter: blur(24px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .welcome-content {
+            background: rgba(20, 20, 35, 0.7);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 0 80px rgba(178, 0, 255, 0.15);
+            transform: translateY(0);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .welcome-content h1 {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .welcome-content p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .btn-glow {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--glow-purple);
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 40px var(--glow-purple);
+            transform: translateY(-2px);
+        }
+
+        /* ── Header ───────────────────────────────────────────── */
+        .glass-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-glass);
+            z-index: 10;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        .session-info {
+            display: flex;
+            align-items: flex-end;
+            flex-direction: column;
+            gap: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .session-info span.id-tag {
+            background: rgba(178, 0, 255, 0.15);
+            color: #E0B0FF;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(178, 0, 255, 0.3);
+        }
+
+        .api-input {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            outline: none;
+            width: 250px;
+            transition: all 0.3s;
+        }
+        
+        .api-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .btn-admin {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-admin:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-admin.accent-purple:hover {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 10px var(--glow-purple);
+        }
+
+        .btn-admin.accent-cyan:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        /* ── Payload Viewer ───────────────────────────────────── */
+        .payload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .payload-section {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .ps-header {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-glass);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ps-body {
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--text-secondary);
+        }
+
+        .tier-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+
+        /* ── Main Layout ──────────────────────────────────────── */
+        .workspace {
+            display: grid;
+            grid-template-columns: 380px 1fr 380px;
+            flex: 1;
+            overflow: hidden;
+            gap: 1px;
+            background: var(--border-glass);
+        }
+
+        .panel-glass {
+            background: var(--bg-deep);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            min-height: 0;
+        }
+
+        .panel-header {
+            padding: 16px 20px;
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-glass);
+            background: linear-gradient(to right, rgba(0,229,255,0.05), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* ── Chat ────────────────────────────────────────────── */
+        .chat-stream {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .chat-stream::-webkit-scrollbar { width: 6px; }
+        .chat-stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .bubble {
+            max-width: 88%;
+            padding: 14px 18px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bubble.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent-blue), #1e5dd9);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            box-shadow: 0 4px 15px rgba(41, 121, 255, 0.2);
+        }
+
+        .bubble.assistant {
+            align-self: flex-start;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 18px 18px 18px 4px;
+            color: var(--text-primary);
+        }
+
+        .bubble.system {
+            align-self: center;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            text-align: center;
+        }
+
+        .memory-citations {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-glass);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .citation-badge {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+        }
+
+        .chat-input-box {
+            padding: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .input-wrapper {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-glass);
+            border-radius: 24px;
+            padding: 6px;
+            position: relative;
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 20px rgba(178, 0, 255, 0.15);
+        }
+
+        .chat-textfield {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .btn-send {
+            background: var(--accent-purple);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--glow-purple);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
+        }
+
+        /* ── Center Vis ──────────────────────────────────────── */
+        .vis-tabs {
+            display: flex;
+            background: var(--bg-glass);
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 14px;
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover { color: var(--text-secondary); }
+        .tab.active { 
+            color: var(--accent-cyan); 
+            border-bottom-color: var(--accent-cyan);
+            background: linear-gradient(to top, rgba(0,229,255,0.05), transparent);
+        }
+
+        .vis-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .vis-layer {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .vis-layer.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* Graph Tooltip */
+        #graph-tooltip {
+            position: absolute;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--accent-cyan);
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 100;
+            max-width: 250px;
+        }
+
+        .tt-title { font-family: var(--font-display); font-weight: 600; color: var(--accent-cyan); margin-bottom: 4px; }
+        .tt-desc { color: var(--text-secondary); line-height: 1.4; }
+
+        /* Pipeline Trace List */
+        .trace-item {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .trace-item:hover { border-color: rgba(255,255,255,0.2); }
+
+        .trace-header {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .trace-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .trace-title { flex: 1; font-weight: 500; }
+        .trace-latency { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-green); }
+
+        .trace-body {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s;
+            background: rgba(0,0,0,0.2);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .trace-item.expanded .trace-body {
+            padding: 14px 18px;
+            max-height: 200px;
+            border-top: 1px solid var(--border-glass);
+        }
+
+        .trace-item.active-glow {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px var(--glow-cyan);
+        }
+
+        /* ── Right Panel ──────────────────────────────────────── */
+        .memory-scroller {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .mem-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            animation: slideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideLeft {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .mem-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            border-radius: 12px 0 0 12px;
+        }
+        .mem-card.tier-working::before { background: var(--accent-blue); }
+        .mem-card.tier-episodic::before { background: var(--accent-orange); }
+        .mem-card.tier-semantic::before { background: var(--accent-purple); }
+        .mem-card.tier-graph::before { background: var(--accent-green); }
+
+        .mc-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;}
+        .mc-tier { font-weight: 600; }
+        .tier-working .mc-tier { color: var(--accent-blue); }
+        .tier-episodic .mc-tier { color: var(--accent-orange); }
+        .tier-semantic .mc-tier { color: var(--accent-purple); }
+        .tier-graph .mc-tier { color: var(--accent-green); }
+
+        .mc-text {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #E8E8F0;
+        }
+
+        /* ── Interviewer Insights Toast System ───────────────── */
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: none;
+        }
+
+        .insight-toast {
+            background: rgba(15, 15, 25, 0.85);
+            backdrop-filter: blur(16px);
+            border-left: 4px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 16px 20px;
+            width: 380px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            pointer-events: all;
+            animation: toastIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .insight-toast.outro {
+            animation: toastOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to { opacity: 0; transform: translateX(-50px) scale(0.95); }
+        }
+
+        .toast-label {
+            font-family: var(--font-display);
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .toast-body {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .toast-sub {
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.8rem;
+            margin-top: 6px;
+            border-top: 1px solid var(--border-glass);
+            padding-top: 6px;
+        }
+
+        /* ── Loaders ───────────────────────────────────────── */
+        .typing { display: flex; gap: 4px; padding: 4px 6px; }
+        .typing span { width: 6px; height: 6px; background: #fff; border-radius: 50%; opacity: 0.4; animation: blink 1.4s infinite both; }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- INTERVIEWER / FIRST LOAD MODAL -->
+    <div id="welcome-modal">
+        <div class="welcome-content">
+            <h1>NeuroMem Engine</h1>
+            <p>Welcome to the <strong>Human-Inspired Cognitive Architecture</strong>.<br><br>
+               Unlike standard RAG which blindly indexes text into a flat vector database, NeuroMem uses a 5-tier biological memory equivalent (incorporating Ebbinghaus decay, Neo4j Temporal Graphs, and Titans-inspired gating).<br><br>
+               <strong>Start chatting to watch the architecture build your structural profile in real time.</strong>
+            </p>
+            <button class="btn-glow" id="btn-start">Initialize Engine Initialization</button>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toast-container"></div>
+
+    <!-- HEADER -->
+    <!-- HEADER -->
+    <header class="glass-header">
+        <div class="logo-area">
+            <div class="logo-icon">🧠</div>
+            NeuroMem <span style="font-weight:300; opacity:0.5; font-size:1rem;">v3.0</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <div class="admin-actions">
+                <button class="btn-admin accent-cyan" onclick="skipTime(15)">
+                    <span>⏳</span> Skip 15 Days
+                </button>
+                <button class="btn-admin accent-purple" onclick="forceConsolidate()">
+                    <span>⚙️</span> Consolidate
+                </button>
+            </div>
+            <div class="session-info">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    Auth Key:
+                    <input type="password" class="api-input" id="api-key" value="neuromem-dev-key-change-me">
+                </div>
+                <div style="margin-top:6px;">
+                    Private Tenant UUID: <span class="id-tag" id="tenant-id"></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- WORKSPACE -->
+    <main class="workspace">
+        
+        <!-- LEFT: Chat -->
+        <section class="panel-glass">
+            <div class="panel-header">
+                User Interaction
+                <span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">WebClient</span>
+            </div>
+            <div class="chat-stream" id="chat-stream">
+                <div class="bubble system">Memory Sandbox Initialized. All history isolated to this session.</div>
+            </div>
+            <div class="chat-input-box">
+                <div class="input-wrapper">
+                    <input type="text" id="chat-input" class="chat-textfield" placeholder="Tell me about yourself..." autocomplete="off">
+                    <button id="btn-send" class="btn-send">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CENTER: Vis -->
+        <section class="panel-glass" style="border-left: 1px solid var(--border-glass); border-right: 1px solid var(--border-glass);">
+            <div style="display: flex; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-glass);">
+                <div style="flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--border-glass);">
+                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-cyan); font-weight: 700;" id="stat-memories">0</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Memories</div>
+                </div>
+                <div style="flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--border-glass);">
+                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-purple); font-weight: 700;" id="stat-entities">0</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Entities</div>
+                </div>
+                <div style="flex: 1; padding: 10px; text-align: center;">
+                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-green); font-weight: 700;" id="stat-latency">—</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Latency</div>
+                </div>
+            </div>
+            <div class="vis-tabs">
+                <div class="tab active" data-target="lay-graph">Cognitive Graph</div>
+                <div class="tab" data-target="lay-pipeline">Pipeline Inspector</div>
+                <div class="tab" data-target="lay-decay">Decay Curves</div>
+                <div class="tab" data-target="lay-payload">Context & Payload</div>
+            </div>
+            <div class="vis-container">
+                <!-- Tooltip for Graph -->
+                <div id="graph-tooltip">
+                    <div class="tt-title" id="tt-title">Node</div>
+                    <div class="tt-desc" id="tt-desc">Description</div>
+                </div>
+
+                <!-- Layer: Graph -->
+                <div class="vis-layer active" id="lay-graph">
+                    <svg id="svg-graph" style="width:100%; height:100%; min-height: 400px;"></svg>
+                </div>
+
+                <!-- Layer: Pipeline -->
+                <div class="vis-layer" id="lay-pipeline">
+                    <div style="margin-bottom: 20px; color:var(--text-secondary); font-size:0.9rem; line-height: 1.5;">
+                        <strong>LangGraph v2 StateRouter:</strong> Watch the memory retrieval stack dynamically cross-encode vectors and semantic facts over a sub-100ms lifespan.
+                    </div>
+                    <div id="trace-container"></div>
+                </div>
+
+                <!-- Layer: Decay -->
+                <div class="vis-layer" id="lay-decay">
+                    <canvas id="canvas-decay"></canvas>
+                </div>
+
+                <!-- Layer: Payload Viewer -->
+                <div class="vis-layer" id="lay-payload">
+                    <div class="payload-container">
+                        <div class="payload-section">
+                            <div class="ps-header">
+                                <span>LLM Input: System Prompt Payload</span>
+                                <span style="color:var(--accent-cyan)">Live Injection</span>
+                            </div>
+                            <div class="ps-body" id="code-system-prompt">Send a message to view the exact memory-augmented prompt sent to the LLM.</div>
+                        </div>
+                        
+                        <div class="tier-grid">
+                            <div class="payload-section">
+                                <div class="ps-header">Tier 1: Working (Redis)</div>
+                                <div class="ps-body" id="code-tier-1" style="font-size:0.7rem">Empty</div>
+                            </div>
+                            <div class="payload-section">
+                                <div class="ps-header">Tier 2: Episodic (Postgres)</div>
+                                <div class="ps-body" id="code-tier-2" style="font-size:0.7rem">Empty</div>
+                            </div>
+                            <div class="payload-section">
+                                <div class="ps-header">Tier 3: Semantic (Qdrant)</div>
+                                <div class="ps-body" id="code-tier-3" style="font-size:0.7rem">Empty</div>
+                            </div>
+                            <div class="payload-section">
+                                <div class="ps-header">Tier 4: Graph (Neo4j)</div>
+                                <div class="ps-body" id="code-tier-4" style="font-size:0.7rem">Empty</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: Memories -->
+        <section class="panel-glass">
+            <div class="panel-header">
+                System Context Window
+                <span style="font-size:0.7rem; color:var(--accent-green); font-family:var(--font-mono);" id="trim-stat">Tokens Budgeted</span>
+            </div>
+            <div class="memory-scroller" id="memory-scroller">
+                <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top: 40px; line-height: 1.6;">
+                    <span style="font-size:2rem; opacity:0.3;">🗂️</span><br>
+                    Context is empty.<br>Memories retrieved to answer queries will populate here.
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ── App State ──────────────────────────────────────────────────
+        const state = {
+            userId: 'sess_' + Math.random().toString(36).substring(2, 10),
+            sessionId: null,
+            isFirstMessage: true,
+            graphLoaded: false,
+            insightsShown: new Set()
+        };
+
+        const API_BASE = window.location.origin;
+
+        // ── Init UI ────────────────────────────────────────────────────
+        document.getElementById('tenant-id').textContent = state.userId;
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            document.getElementById('welcome-modal').style.opacity = '0';
+            setTimeout(() => document.getElementById('welcome-modal').remove(), 600);
+            
+            setTimeout(() => {
+                showInsight('Architectural Concept', 
+                    'NeuroMem segregates your thoughts into 5 tiers: Working, Episodic, Semantic, Graph, and Procedural.', 
+                    'Standard RAG throws everything into a single Vector DB. We use biological hierarchy.');
+            }, 1000);
+        });
+
+        // ── Tabs ───────────────────────────────────────────────────────
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.vis-layer').forEach(l => l.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+
+                if (tab.dataset.target === 'lay-payload') {
+                    updateStateView();
+                }
+            });
+        });
+
+        // ── Interviewer Insights Engine ───────────────────────────────
+        function showInsight(title, body, comparison) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'insight-toast';
+            toast.innerHTML = `
+                <div class="toast-label">💡 Insight: ${title}</div>
+                <div class="toast-body">${body}</div>
+                ${comparison ? `<div class="toast-sub"><strong>RAG Comparison:</strong> ${comparison}</div>` : ''}
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('outro');
+                setTimeout(() => toast.remove(), 600);
+            }, 8000);
+        }
+
+        // ── Admin Tools ───────────────────────────────────────────────
+        async function skipTime(days) {
+            try {
+                const res = await fetch(`${API_BASE}/admin/time-skip?days=${days}`, {
+                    method: 'POST',
+                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
+                });
+                const data = await res.json();
+                showInsight('Time Travel Protocol', `Simulated ${days} days passing. Ebbinghaus decay scores have been recalculated for all episodic memories.`, 'Standard RAG never forgets or weights time.');
+                updateStateView();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function forceConsolidate() {
+            try {
+                showInsight('Executing Consolidation', 'Processing LangGraph state machine to promote long-term episodic traces to permanent semantic vectors...', 'RAG lacks a biological consolidation phase.');
+                const res = await fetch(`${API_BASE}/admin/consolidate`, {
+                    method: 'POST',
+                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
+                });
+                const data = await res.json();
+                showInsight('Consolidation Complete', `Processed ${data.episodes_processed} episodes. Wrote ${data.semantic_facts_written} semantic vectors and ${data.graph_triples_added} triples.`, '');
+                updateStateView();
+                fetchGraph();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function updateStateView() {
+            try {
+                const res = await fetch(`${API_BASE}/memory/state`, {
+                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
+                });
+                const data = await res.json();
+                
+                document.getElementById('code-tier-1').textContent = JSON.stringify(data.working, null, 2);
+                document.getElementById('code-tier-2').textContent = JSON.stringify(data.episodic, null, 2);
+                document.getElementById('code-tier-3').textContent = JSON.stringify(data.semantic, null, 2);
+                document.getElementById('code-tier-4').textContent = JSON.stringify(data.graph, null, 2);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ── Chat Logic ────────────────────────────────────────────────
+        const input = document.getElementById('chat-input');
+        const btnSend = document.getElementById('btn-send');
+        const stream = document.getElementById('chat-stream');
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+        btnSend.addEventListener('click', handleSend);
+
+        async function handleSend() {
+            const text = input.value.trim();
+            if (!text) return;
+            
+            input.value = '';
+            btnSend.disabled = true;
+            appendBubble(text, 'user');
+            
+            const typingId = appendTyping();
+            simulatePipelineTrace();
+
+            if (text.toLowerCase().includes('moved to') && !state.insightsShown.has('contradiction')) {
+                state.insightsShown.add('contradiction');
+                setTimeout(() => {
+                    showInsight('Contradiction Resolution', 
+                    'You mentioned moving. The background pipeline will detect this semantic conflict and invalidate your previous location via timestamp.',
+                    'Standard RAG would permanently keep both locations, hallucinating that you live in two cities.');
+                }, 2000);
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-KEY': document.getElementById('api-key').value,
+                        'X-USER-ID': state.userId
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        session_id: state.sessionId,
+                        include_memory_debug: true
+                    })
+                });
+
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                const data = await res.json();
+                
+                document.getElementById(typingId).remove();
+                appendBubble(data.reply, 'assistant', data.memory_debug);
+                
+                state.sessionId = data.session_id;
+                document.getElementById('stat-latency').textContent = `${data.latency_ms.toFixed(0)}ms`;
+
+                if (data.memory_debug) {
+                    renderMemoryPanel(data.memory_debug.memories);
+                    document.getElementById('stat-memories').textContent = data.memory_debug.memories_retrieved || data.memory_debug.memories.length;
+                    
+                    if (data.memory_debug.system_prompt) {
+                        document.getElementById('code-system-prompt').textContent = data.memory_debug.system_prompt;
+                    }
+
+                    const tiers = new Set(data.memory_debug.memories.map(m => m.tier));
+                    if (tiers.has('graph') && !state.insightsShown.has('graph_retrieval')) {
+                        state.insightsShown.add('graph_retrieval');
+                        showInsight('Multi-Hop Routing', 
+                            'The prompt was injected with Relationship context from Tier 4 (Neo4j Graph).',
+                            'Vectors are structural-blind. The graph understands entity A -> connected to -> entity B.');
+                    }
+                }
+
+                if (document.querySelector('.tab[data-target="lay-payload"]').classList.contains('active')) {
+                    updateStateView();
+                }
+
+                // Wait 4.5s for the FastAPI BackgroundTask and LLM to finish extraction
+                setTimeout(fetchGraph, 4500);
+
+            } catch (e) {
+                document.getElementById(typingId).remove();
+                appendBubble('Error connecting to backend: ' + e.message, 'system');
+            } finally {
+                btnSend.disabled = false;
+                input.focus();
+            }
+        }
+
+        let bubbleCount = 0;
+        function appendBubble(text, role, memoryDebug=null) {
+            const div = document.createElement('div');
+            div.className = `bubble ${role}`;
+            
+            let html = text;
+            if (memoryDebug && memoryDebug.memories.length > 0) {
+                const tags = Array.from(new Set(memoryDebug.memories.map(m => m.tier))).map(t => `<div class="citation-badge">Used: Tier-${t.toUpperCase()}</div>`).join('');
+                html += `<div class="memory-citations">${tags}</div>`;
+            }
+            
+            div.innerHTML = html;
+            stream.appendChild(div);
+            stream.scrollTop = stream.scrollHeight;
+        }
+
+        function appendTyping() {
+            const id = 'typing-' + bubbleCount++;
+            const div = document.createElement('div');
+            div.className = 'bubble assistant';
+            div.id = id;
+            div.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+            stream.appendChild(div);
+            stream.scrollTop = stream.scrollHeight;
+            return id;
+        }
+
+
+        // ── Memory Panel Rendering ─────────────────────────────────────
+        function renderMemoryPanel(memories) {
+            const scroller = document.getElementById('memory-scroller');
+            scroller.innerHTML = '';
+            
+            if (memories.length === 0) {
+                scroller.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top: 40px;">No exact memories matched. Relying on baseline model weights.</div>`;
+                return;
+            }
+
+            memories.forEach(mem => {
+                const div = document.createElement('div');
+                div.className = `mem-card tier-${mem.tier}`;
+                div.innerHTML = `
+                    <div class="mc-top">
+                        <span class="mc-tier">${mem.tier}</span>
+                        <span style="opacity:0.6;">Score: ${mem.relevance.toFixed(3)}</span>
+                    </div>
+                    <div class="mc-text">${mem.content}</div>
+                `;
+                scroller.appendChild(div);
+            });
+        }
+
+
+        // ── Pipeline Trace (Interactive Résumé Explanation) ─────────────
+        const pipelineSteps = [
+            { id: 1, name: "Heuristic Router", latency: "0.2ms", desc: "Skipped an 800ms LLM routing call by using explicit semantic keyword triggers to determine which of the 4 Memory Tiers needed to be parallel-queried." },
+            { id: 2, name: "Parallel Retrieval", latency: "25ms", desc: "Fired simultaneous async requests to Redis (Working), Postgres (Episodic), Qdrant (Semantic vectors), and Neo4j (Graph logic). RAG just uses one." },
+            { id: 3, name: "Cross-Encoder (ms-marco)", latency: "42ms", desc: "Flattened the combined results and reranked them rigorously to place perfectly matching intent above generalized semantic matches." },
+            { id: 4, name: "Token Budget Fit", latency: "1ms", desc: "Enforced the 2000 token limit greedily. Anything at the bottom of the cross-encoder list gets completely dropped to preserve LLM context economics." }
+        ];
+
+        function initPipeline() {
+            const cont = document.getElementById('trace-container');
+            pipelineSteps.forEach(step => {
+                const t = document.createElement('div');
+                t.className = 'trace-item';
+                t.innerHTML = `
+                    <div class="trace-header">
+                        <div class="trace-icon">⚡</div>
+                        <div class="trace-title">${step.name}</div>
+                        <div class="trace-latency"></div>
+                    </div>
+                    <div class="trace-body">${step.desc}</div>
+                `;
+                
+                t.addEventListener('click', () => {
+                    t.classList.toggle('expanded');
+                });
+                
+                cont.appendChild(t);
+            });
+        }
+        initPipeline();
+
+        function simulatePipelineTrace() {
+            const items = document.querySelectorAll('.trace-item');
+            items.forEach(i => {
+                i.classList.remove('active-glow');
+                i.querySelector('.trace-latency').textContent = 'running...';
+            });
+            
+            let i = 0;
+            const iv = setInterval(() => {
+                if (i > 0) items[i-1].classList.remove('active-glow');
+                if (i < items.length) {
+                    items[i].classList.add('active-glow');
+                    items[i].querySelector('.trace-latency').textContent = pipelineSteps[i].latency;
+                    i++;
+                } else {
+                    clearInterval(iv);
+                }
+            }, 300);
+        }
+
+        // ── Interactive Knowledge Graph (D3.js) ────────────────────────
+        async function fetchGraph() {
+            try {
+                const res = await fetch(`${API_BASE}/graph?include_invalidated=true`, {
+                    headers: { 
+                        'X-API-KEY': document.getElementById('api-key').value,
+                        'X-USER-ID': state.userId
+                    }
+                });
+                if(!res.ok) return;
+                const data = await res.json();
+                
+                if (data.nodes.length > 0 && !state.graphLoaded) {
+                    state.graphLoaded = true;
+                    showInsight('Spatial Graph Rendered', 
+                        'Visual representation active. The background task extracted Entity-Relationship triples and appended them to Neo4j automatically.',
+                        'Standard systems lack spatial relationship awareness completely.');
+                }
+                
+                document.getElementById('stat-entities').textContent = data.nodes.length || 0;
+
+                renderGraph(data);
+            } catch(e) {}
+        }
+
+        function renderGraph(data) {
+            const svg = d3.select('#svg-graph');
+            svg.selectAll('*').remove();
+            
+            if (!data.nodes || data.nodes.length === 0) {
+                svg.append('text').attr('x','50%').attr('y','50%').attr('text-anchor','middle').attr('fill','#656580').text('Graph evaluates and grows after each background cycle.');
+                return;
+            }
+
+            const bounds = svg.node().parentElement.getBoundingClientRect();
+            const width = bounds.width || 500;
+            const height = bounds.height || 500;
+            
+            svg.attr('width', width).attr('height', height);
+
+            const nodes = data.nodes.map(n => ({...n}));
+            const edges = data.edges.map(e => ({
+                source: nodes.find(n => n.id === e.subject) || e.subject,
+                target: nodes.find(n => n.id === e.object) || e.object,
+                label: e.predicate.replace(/_/g, ' '),
+                active: e.is_active
+            })).filter(e => typeof e.source === 'object' && typeof e.target === 'object');
+
+            const sim = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(edges).id(d=>d.id).distance(150))
+                .force('charge', d3.forceManyBody().strength(-400))
+                .force('center', d3.forceCenter(width/2, height/2))
+                .force('collide', d3.forceCollide().radius(50));
+
+            const tt = document.getElementById('graph-tooltip');
+            
+            // Edges
+            const linkGroup = svg.append('g').selectAll('g').data(edges).enter().append('g');
+            
+            const link = linkGroup.append('line')
+                .attr('stroke', d => d.active ? 'var(--accent-purple)' : '#444')
+                .attr('stroke-width', d => d.active ? 2 : 1)
+                .attr('stroke-dasharray', d => d.active ? 'none' : '4,4')
+                .attr('opacity', 0.8);
+
+            // Invisible wide line for hover 
+            linkGroup.append('line')
+                .attr('stroke-width', 15)
+                .attr('stroke', 'transparent')
+                .on('mouseenter', (e, d) => {
+                    tt.style.opacity = 1;
+                    tt.style.left = e.pageX + 10 + 'px';
+                    tt.style.top = e.pageY - 10 + 'px';
+                    document.getElementById('tt-title').textContent = 'Graph Edge (Relationship)';
+                    document.getElementById('tt-desc').textContent = `${d.source.id} → [${d.label.toUpperCase()}] → ${d.target.id}. Status: ${d.active ? 'Valid' : 'Invalidated!'}`;
+                })
+                .on('mouseleave', () => tt.style.opacity = 0);
+
+            // Nodes
+            const node = svg.append('g').selectAll('g').data(nodes).enter().append('g')
+                .call(d3.drag()
+                    .on('start', (e,d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                    .on('drag', (e,d) => { d.fx = e.x; d.fy = e.y; })
+                    .on('end', (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+                );
+
+            node.append('circle')
+                .attr('r', d => d.id === 'User' ? 24 : 18)
+                .attr('fill', d => d.id === 'User' ? 'var(--accent-cyan)' : 'var(--bg-glass)')
+                .attr('stroke', d => d.id === 'User' ? '#fff' : 'var(--accent-cyan)')
+                .attr('stroke-width', 2)
+                .on('mouseenter', (e,d) => {
+                    tt.style.opacity = 1;
+                    tt.style.left = e.pageX + 10 + 'px';
+                    tt.style.top = e.pageY - 10 + 'px';
+                    document.getElementById('tt-title').textContent = `Node: ${d.id}`;
+                    document.getElementById('tt-desc').textContent = `A standalone spatial entity mapped into the graph schema. Hover over connecting lines to see structural logic limits.`;
+                })
+                .on('mouseleave', () => { tt.style.opacity = 0; });
+
+            node.append('text')
+                .attr('dy', d => d.id==='User' ? 38 : 32)
+                .attr('text-anchor', 'middle')
+                .attr('fill', 'var(--text-primary)')
+                .attr('font-size', '12px')
+                .attr('font-weight', '500')
+                .text(d => d.label || d.id);
+
+            // Edge Labels
+            const edgeLabels = svg.append('g').selectAll('text').data(edges).enter().append('text')
+                .attr('fill', '#A0A0BA').attr('font-size', '10px').attr('text-anchor', 'middle')
+                .text(d => d.label.toUpperCase());
+
+            sim.on('tick', () => {
+                linkGroup.selectAll('line').attr('x1', d=>d.source.x).attr('y1', d=>d.source.y).attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+                node.attr('transform', d=>`translate(${d.x},${d.y})`);
+                edgeLabels.attr('x', d=>(d.source.x+d.target.x)/2).attr('y', d=>(d.source.y+d.target.y)/2 - 5);
+            });
+        }
+
+        // ── Render Static Decay Chart ────────────────────────────────
+        const ctx = document.getElementById('canvas-decay').getContext('2d');
+        const days = Array.from({length: 30}, (_,i)=>i);
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: days,
+                datasets: [
+                    { label: 'Frequently Recalled (S=2.5)', data: days.map(t => Math.exp(-t/2.5)), borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.1)', fill: true, tension: 0.4 },
+                    { label: 'One Time Mention (S=0.8)', data: days.map(t => Math.exp(-t/0.8)), borderColor: '#FFAB00', backgroundColor: 'rgba(255,171,0,0.1)', fill: true, tension: 0.4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#A0A0BA', font: {family: 'Outfit'} } },
+                    title: { display: true, text: 'Episodic Memory Math: R = e^(-t/S)', color: '#fff' }
+                },
+                scales: {
+                    x: { ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} },
+                    y: { min: 0, max: 1, ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} }
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

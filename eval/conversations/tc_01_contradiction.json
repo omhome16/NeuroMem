@@ -1,0 +1,47 @@
+{
+  "name": "Contradiction Resolution",
+  "description": "Tests that NeuroMem correctly invalidates old preferences when the user changes their mind. Standard RAG would retrieve both conflicting facts.",
+  "category": "contradiction",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hi! My name is Alex. I absolutely love pizza — it's my favorite food in the world."
+    },
+    {
+      "role": "assistant",
+      "content": "Nice to meet you, Alex! A fellow pizza lover — great taste! Do you have a favorite style or topping?"
+    },
+    {
+      "role": "user",
+      "content": "I work as a data scientist at a company called NovaTech."
+    },
+    {
+      "role": "assistant",
+      "content": "Data science at NovaTech — sounds like interesting work! What kind of projects are you involved in?"
+    },
+    {
+      "role": "user",
+      "content": "Actually, I've completely changed my mind about pizza. I hate it now. My favorite food is sushi."
+    },
+    {
+      "role": "assistant",
+      "content": "Taste buds can definitely change! Sushi is a fantastic choice. Do you have a favorite type — nigiri, sashimi, or rolls?"
+    }
+  ],
+  "test_queries": [
+    {
+      "query": "What is Alex's favorite food?",
+      "expected_facts": ["sushi"],
+      "must_not_contain": ["pizza is favorite", "loves pizza"],
+      "description": "Should return sushi, NOT pizza. Old preference must be invalidated."
+    },
+    {
+      "query": "Where does Alex work?",
+      "expected_facts": ["NovaTech", "data scientist"],
+      "must_not_contain": [],
+      "description": "Non-contradicted fact should be recalled accurately."
+    }
+  ],
+  "rag_expected_failure": "Standard RAG retrieves both 'loves pizza' and 'favorite is sushi', confusing the LLM. NeuroMem's contradiction detector invalidates the old preference.",
+  "neuromem_advantage": "Knowledge Graph temporal invalidation + contradiction detection"
+}

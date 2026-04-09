@@ -1,0 +1,81 @@
+{
+  "name": "Noise Filtering (Surprise Gate)",
+  "description": "Tests that NeuroMem's surprise-gated memory filters out small talk and noise, only storing the one high-signal fact buried in 10 turns of chit-chat.",
+  "category": "noise_filter",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Hey there!"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How's your day going?"
+    },
+    {
+      "role": "user",
+      "content": "Pretty good, the weather is nice today."
+    },
+    {
+      "role": "assistant",
+      "content": "That's great to hear! Nice weather always makes the day better."
+    },
+    {
+      "role": "user",
+      "content": "Yeah, totally. So how are you doing?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm doing well, thanks for asking! What's on your mind today?"
+    },
+    {
+      "role": "user",
+      "content": "Not much, just chilling. Had some coffee earlier."
+    },
+    {
+      "role": "assistant",
+      "content": "A good cup of coffee always hits the spot! Anything else going on?"
+    },
+    {
+      "role": "user",
+      "content": "Oh wait, I forgot to mention — I just got accepted into MIT's PhD program in machine learning! Starting next fall."
+    },
+    {
+      "role": "assistant",
+      "content": "That's absolutely incredible — congratulations! MIT's ML program is world-class. What research area are you most excited about?"
+    },
+    {
+      "role": "user",
+      "content": "Thanks! Anyway, yeah the weather really is something today."
+    },
+    {
+      "role": "assistant",
+      "content": "It sure is! Enjoy the beautiful day — and congratulations again on MIT!"
+    },
+    {
+      "role": "user",
+      "content": "Haha thanks. Ok bye for now!"
+    },
+    {
+      "role": "assistant",
+      "content": "Take care! Talk to you soon."
+    }
+  ],
+  "test_queries": [
+    {
+      "query": "What important news does this user have?",
+      "expected_facts": ["MIT", "PhD", "machine learning"],
+      "must_not_contain": [],
+      "description": "Should recall the MIT PhD acceptance — the ONLY high-signal fact in 14 turns of mostly noise."
+    }
+  ],
+  "noise_analysis": {
+    "total_user_turns": 7,
+    "noise_turns": 6,
+    "signal_turns": 1,
+    "noise_ratio": 0.857,
+    "expected_memories_stored": 1,
+    "expected_memories_gated": 6
+  },
+  "rag_expected_failure": "Standard RAG indexes all 7 user turns equally, flooding the vector DB with 'weather is nice' and 'had some coffee' with similar priority to the MIT acceptance.",
+  "neuromem_advantage": "Surprise scorer assigns low novelty (< 0.3) to small talk and high novelty (> 0.8) to the MIT acceptance, gating 85%+ of noise writes"
+}

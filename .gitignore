@@ -1,0 +1,40 @@
+# .env file - copy from .env.example and fill in your values
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Eval reports
+eval/last_report.json
+
+# Model cache
+.cache/
+models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+.venv
+/venv
+venv

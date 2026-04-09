@@ -1,0 +1,250 @@
+{
+  "timestamp": "2026-04-09T18:27:41.683750",
+  "version": "v3.0",
+  "test_cases": 3,
+  "total_queries": 6,
+  "passed": 5,
+  "failed": 1,
+  "pass_rate": 0.833,
+  "aggregate_metrics": {
+    "recall_at_1": 0.167,
+    "recall_at_5": 0.833,
+    "mrr": 0.403,
+    "precision": 0.378,
+    "f1": 0.448
+  },
+  "per_category": {
+    "contradiction": {
+      "pass_rate": 1.0,
+      "passed": 2,
+      "failed": 0
+    },
+    "temporal": {
+      "pass_rate": 0.667,
+      "passed": 2,
+      "failed": 1
+    },
+    "noise_filter": {
+      "pass_rate": 1.0,
+      "passed": 1,
+      "failed": 0
+    }
+  },
+  "latency": {
+    "ingest_p50_ms": 8141,
+    "ingest_p95_ms": 20756,
+    "retrieve_p50_ms": 7013,
+    "retrieve_p95_ms": 8024,
+    "retrieve_p99_ms": 8024
+  },
+  "detailed_results": [
+    {
+      "name": "Contradiction Resolution",
+      "category": "contradiction",
+      "file": "tc_01_contradiction.json",
+      "conversation_turns": 3,
+      "queries": [
+        {
+          "query": "What is Alex's favorite food?",
+          "description": "Should return sushi, NOT pizza. Old preference must be invalidated.",
+          "pass": true,
+          "metrics": {
+            "recall_at_1": 0.0,
+            "recall_at_5": 1.0,
+            "mrr": 0.25,
+            "precision": 0.2,
+            "f1": 0.333
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 5,
+          "retrieved_preview": [
+            "The user's name is Alex",
+            "I work at NovaTech",
+            "I work as a data scientist",
+            "My favorite food is sushi",
+            "I hate pizza"
+          ],
+          "retrieve_ms": 6597
+        },
+        {
+          "query": "Where does Alex work?",
+          "description": "Non-contradicted fact should be recalled accurately.",
+          "pass": true,
+          "metrics": {
+            "recall_at_1": 0.0,
+            "recall_at_5": 1.0,
+            "mrr": 0.417,
+            "precision": 0.4,
+            "f1": 0.571
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 5,
+          "retrieved_preview": [
+            "The user's name is Alex",
+            "I work at NovaTech",
+            "I work as a data scientist",
+            "My favorite food is sushi",
+            "I hate pizza"
+          ],
+          "retrieve_ms": 8024
+        }
+      ],
+      "latencies": {
+        "ingest_ms": [
+          20756,
+          8578,
+          7652
+        ],
+        "retrieve_ms": []
+      },
+      "overall_pass": true
+    },
+    {
+      "name": "Temporal Location Shift",
+      "category": "temporal",
+      "file": "tc_02_temporal.json",
+      "conversation_turns": 4,
+      "queries": [
+        {
+          "query": "Where does Priya live?",
+          "description": "Should return Austin, NOT San Francisco. Temporal validity must show only current location.",
+          "pass": true,
+          "metrics": {
+            "recall_at_1": 0.0,
+            "recall_at_5": 1.0,
+            "mrr": 0.333,
+            "precision": 0.333,
+            "f1": 0.5
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 6,
+          "retrieved_preview": [
+            "I work as a product manager",
+            "My name is Priya",
+            "I moved to Austin, Texas",
+            "started a new role at GreenLeaf in Austin",
+            "The user enjoys hiking on weekends"
+          ],
+          "retrieve_ms": 6838
+        },
+        {
+          "query": "Where does Priya work?",
+          "description": "Should return the current employer GreenLeaf.",
+          "pass": true,
+          "metrics": {
+            "recall_at_1": 0.0,
+            "recall_at_5": 1.0,
+            "mrr": 0.25,
+            "precision": 0.167,
+            "f1": 0.286
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 6,
+          "retrieved_preview": [
+            "I work as a product manager",
+            "My name is Priya",
+            "I moved to Austin, Texas",
+            "started a new role at GreenLeaf in Austin",
+            "The user enjoys hiking on weekends"
+          ],
+          "retrieve_ms": 7242
+        },
+        {
+          "query": "Does Priya have any pets?",
+          "description": "Non-temporal facts should persist correctly.",
+          "pass": false,
+          "metrics": {
+            "recall_at_1": 0.0,
+            "recall_at_5": 0.0,
+            "mrr": 0.167,
+            "precision": 0.167,
+            "f1": 0.0
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 6,
+          "retrieved_preview": [
+            "I moved to Austin, Texas",
+            "I work as a product manager",
+            "My name is Priya",
+            "started a new role at GreenLeaf in Austin",
+            "The user enjoys hiking on weekends"
+          ],
+          "retrieve_ms": 7013
+        }
+      ],
+      "latencies": {
+        "ingest_ms": [
+          7644,
+          8574,
+          7791,
+          7396
+        ],
+        "retrieve_ms": []
+      },
+      "overall_pass": false
+    },
+    {
+      "name": "Noise Filtering (Surprise Gate)",
+      "category": "noise_filter",
+      "file": "tc_03_noise_filter.json",
+      "conversation_turns": 7,
+      "queries": [
+        {
+          "query": "What important news does this user have?",
+          "description": "Should recall the MIT PhD acceptance \u00e2\u20ac\u201d the ONLY high-signal fact in 14 turns of mostly noise.",
+          "pass": true,
+          "metrics": {
+            "recall_at_1": 1.0,
+            "recall_at_5": 1.0,
+            "mrr": 1.0,
+            "precision": 1.0,
+            "f1": 1.0
+          },
+          "leakage": {
+            "leaked": false,
+            "leaked_terms": [],
+            "clean_rate": 1.0
+          },
+          "retrieved_count": 1,
+          "retrieved_preview": [
+            "accepted into MIT's PhD program in machine learning"
+          ],
+          "retrieve_ms": 6705
+        }
+      ],
+      "latencies": {
+        "ingest_ms": [
+          7505,
+          7711,
+          7947,
+          8492,
+          11900,
+          8141,
+          8765
+        ],
+        "retrieve_ms": []
+      },
+      "overall_pass": true
+    }
+  ]
+}

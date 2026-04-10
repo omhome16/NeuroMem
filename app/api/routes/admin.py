@@ -87,7 +87,15 @@ async def consolidate(
     start_time = datetime.now(timezone.utc)
     
     # Step 1: Fetch unconsolidated memories
-    episodes = await episodic_store.get_all_unconsolidated(user_id=user_id)
+    from app.db.redis_client import get_redis_client
+    from app.core.sim_clock import SimulatedClock
+    redis = await get_redis_client()
+    clock = SimulatedClock(redis)
+    sim_now = await clock.get_now(user_id)
+    
+    episodes = await episodic_store.get_all_unconsolidated(
+        user_id=user_id, days_back=99999, sim_now=sim_now
+    )
 
     if not episodes:
         return {"status": "no_memories", "message": "No unconsolidated memories found."}
@@ -198,7 +206,8 @@ async def time_skip(
     clock = SimulatedClock(redis)
     new_offset = await clock.increment_offset(user_id, days)
     
-    # 3. Recalculate decay scores based on new time
+    # 3. Recalculate decay scores based on new simulated time
+    sim_now = await clock.get_now(user_id)
     result = await episodic_store.update_all_decay_scores(user_id, sim_now=sim_now)
     
     return {

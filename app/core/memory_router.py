@@ -215,6 +215,7 @@ class MemoryRouter:
             "hate", "enjoy", "hobby", "hobbies", "interest",
             "allergic", "dietary", "vegetarian", "vegan",
             "what is my", "where do i", "do you know",
+            "who is", "what was", "tell me", "remind me", "context"
         ]
         if any(signal in query for signal in fact_signals):
             tiers.extend(["episodic", "semantic"])
@@ -224,6 +225,7 @@ class MemoryRouter:
             "when did", "last time", "recently", "yesterday",
             "last week", "planning to", "going to", "started",
             "changed", "switched", "new job", "moved",
+            "ago", "before", "past", "history", "long ago"
         ]
         if any(signal in query for signal in event_signals):
             tiers.extend(["episodic", "graph"])
@@ -252,7 +254,8 @@ class MemoryRouter:
         """Node 2a: Retrieve from working memory (Redis — Tier 1)."""
         try:
             session_id = UUID(state["session_id"])
-            wm_state = await self.working.get_context_for_prompt(session_id)
+            user_id = state["user_id"]
+            wm_state = await self.working.get_context_for_prompt(user_id, session_id)
             results = []
 
             if wm_state.compressed_summary:

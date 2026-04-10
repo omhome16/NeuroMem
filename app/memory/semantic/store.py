@@ -14,6 +14,7 @@ from qdrant_client.http.models import (
     Distance,
     FieldCondition,
     Filter,
+    FilterSelector,
     MatchValue,
     PointStruct,
     VectorParams,
@@ -197,12 +198,14 @@ class SemanticMemoryStore:
         """GDPR: Delete all semantic memories for a user."""
         await self.client.delete(
             collection_name=self.collection,
-            points_selector=Filter(
-                must=[
-                    FieldCondition(
-                        key="user_id", match=MatchValue(value=user_id)
-                    )
-                ]
+            points_selector=FilterSelector(
+                filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="user_id", match=MatchValue(value=user_id)
+                        )
+                    ]
+                )
             ),
         )
         logger.info("semantic_memories_deleted", extra={"user_id": user_id})

@@ -6,7 +6,7 @@ Conflict resolution: simple timestamp-based overwrite (newer wins).
 """
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from uuid import UUID
 
@@ -181,7 +181,7 @@ class EpisodicMemoryStore:
             WHERE user_id = $1
               AND consolidated = FALSE
               AND expires_at > $2
-              AND decay_score > 0.05
+              AND decay_score > 0.01
               {type_filter}
             ORDER BY (importance * decay_score) DESC, created_at DESC
             LIMIT $3
@@ -281,15 +281,16 @@ class EpisodicMemoryStore:
     ) -> List[EpisodicMemory]:
         """Fetch all unconsolidated memories for consolidation job."""
         now = sim_now or datetime.now(timezone.utc)
+        threshold = now - timedelta(days=days_back)
         rows = await self.pg.fetch(
             """
             SELECT * FROM episodic_memories
             WHERE user_id = $1
               AND consolidated = FALSE
-              AND created_at > $3 - ($2 * INTERVAL '1 day')
+              AND created_at > $2
             ORDER BY created_at DESC
             """,
-            user_id, days_back, now,
+            user_id, threshold,
         )
         return [
             EpisodicMemory(

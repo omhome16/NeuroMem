@@ -29,10 +29,10 @@ async def init_neo4j() -> AsyncDriver:
         await session.run("RETURN 1")
     logger.info("neo4j_connected", extra={"uri": settings.neo4j_uri})
 
-    # Create constraints and indexes
+    # Create indexes for performance (no uniqueness — multi-tenant names can collide)
     async with _driver.session() as session:
         await session.run(
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (e:Entity) REQUIRE e.name IS UNIQUE"
+            "CREATE INDEX IF NOT EXISTS FOR (e:Entity) ON (e.name)"
         )
         await session.run(
             "CREATE INDEX IF NOT EXISTS FOR (e:Entity) ON (e.user_id)"

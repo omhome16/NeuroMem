@@ -91,7 +91,7 @@ async def chat(
     )
 
     # Step 2: Store user turn in working memory
-    await working_memory.add_turn(session_id, "user", request.message)
+    await working_memory.add_turn(user_id, session_id, "user", request.message)
 
     # Step 3: Route and retrieve memories (LangGraph v2 pipeline)
     memories = await memory_router.route_and_retrieve(
@@ -114,14 +114,14 @@ async def chat(
     )
 
     # Step 6: Get conversation history for context
-    turns = await working_memory.get_turns(session_id)
+    turns = await working_memory.get_turns(user_id, session_id)
     messages = [{"role": t.role, "content": t.content} for t in turns]
 
     # Step 6: Call LLM via LangChain
     reply = await llm_client.chat(messages=messages, system=system_prompt)
 
     # Step 7: Store assistant turn
-    await working_memory.add_turn(session_id, "assistant", reply)
+    await working_memory.add_turn(user_id, session_id, "assistant", reply)
 
     latency_ms = int((time.time() - start_time) * 1000)
 

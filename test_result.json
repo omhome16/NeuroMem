@@ -1,0 +1,129 @@
+{
+  "user_a": "user_A_94d4ae",
+  "user_b": "user_B_ded693",
+  "user_a_working_count": 1,
+  "user_b_working_count": 20,
+  "status": "FAILURE",
+  "details": [
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T10:48:02.729175Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T10:48:04.401908Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "Hey! My name is Om and I'm a 3rd-year student at IIIT Nagpur. I am currently preparing for an AI/ML engineering internship.\"",
+      "timestamp": "2026-04-10T09:50:25.782042Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Nice to meet you, Om. It's great that you're preparing for an AI/ML engineering internship. IIIT Nagpur is a fantastic institution, and I'm sure you're getting a solid foundation in computer science. \n\nWhat specific areas of AI/ML are you interested in or focusing on for your internship? Are you looking at companies like Google, Microsoft, or startups, or do you have any particular industry in mind, such as healthcare or finance?",
+      "timestamp": "2026-04-10T09:50:28.259263Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "Actually, I changed my mind. I am now preparing for a Web Development internship instead.",
+      "timestamp": "2026-04-10T09:51:22.110098Z",
+      "turn_index": 2
+    },
+    {
+      "role": "assistant",
+      "content": "No worries, Om. It's completely normal to explore different interests and change your mind. Web Development is a fantastic field with a lot of opportunities. As a 3rd-year student at IIIT Nagpur, you likely have a strong foundation in programming, which will definitely help.\n\nWhat sparked your interest in Web Development, and what areas of it are you most excited about? Are you looking at front-end development with technologies like React or Angular, or back-end development with Node.js or Django? Or perhaps you're interested in full-stack development?",
+      "timestamp": "2026-04-10T09:51:23.686918Z",
+      "turn_index": 3
+    },
+    {
+      "role": "user",
+      "content": "Can you give me some tips for my resume and what tech stack I should focus on?",
+      "timestamp": "2026-04-10T09:56:55.279059Z",
+      "turn_index": 4
+    },
+    {
+      "role": "assistant",
+      "content": "For a Web Development internship, your resume should highlight your programming skills, projects, and any relevant experience you have. Here are a few tips:\n\n1. **Tailor your resume**: Customize your resume to match the requirements of the internship you're applying for. Use keywords from the job description to describe your skills and experience.\n2. **Include personal projects**: Showcase your personal projects, such as a website or a web application you've built. This demonstrates your skills and passion for Web Development.\n3. **Highlight your tech stack**: List the programming languages, frameworks, and tools you're proficient in. For Web Development, some popular tech stacks include:\n\t* Front-end: JavaScript, HTML/CSS, React, Angular, or Vue.js\n\t* Back-end: Node.js, Express.js, Django, or Ruby on Rails\n\t* Full-stack: A combination of front-end and back-end technologies\n4. **Emphasize soft skills**: In addition to technical skills, highlight your soft skills, such as teamwork, communication, and problem-solving.\n\nAs for the tech stack, it depends on your interests and the type of company you're applying to. However, here are some popular and in-demand technologies:\n\n* **Front-end**: React, Angular, or Vue.js, along with JavaScript, HTML/CSS, and CSS preprocessors like Sass or Less\n* **Back-end**: Node.js with Express.js, or Django with Python\n* **Full-stack**: A combination of front-end and back-end technologies, such as MERN (MongoDB, Express.js, React, Node.js) or MEAN (MongoDB, Express.js, Angular, Node.js)\n\nRemember to focus on the technologies that interest you the most and be prepared to learn and adapt to new technologies as you grow in your career.\n\nHow does that sound, Om? Do you have any specific questions about resume-building or tech stacks?",
+      "timestamp": "2026-04-10T09:57:02.806489Z",
+      "turn_index": 5
+    },
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T11:30:58.894380Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T11:30:59.678829Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T10:39:54.170938Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T10:39:59.002912Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "My name is Om. I am currently living in Nagpur and attending IIIT Nagpur as a 3rd-year CS student. I'm really passionate about Web Development and my goal is to get an internship at a fast-paced startup. Right now, my favorite framework has been React, but I'm looking to learn backend stuff too",
+      "timestamp": "2026-04-10T10:10:42.561494Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Nice to catch up with you again, Om. It sounds like your interests in web development are still going strong, and you're looking to expand your skill set to the backend. That's a great move, as knowing both frontend and backend will make you a more versatile developer and definitely increase your chances of landing an internship at a startup.\n\nSince you've been working with React, you might want to consider learning a backend framework that pairs well with it, such as Node.js with Express.js. This will allow you to stay within the JavaScript ecosystem and leverage your existing knowledge.\n\nWhat specific areas of backend development are you interested in learning more about? Are you looking at databases, server-side rendering, or something else?",
+      "timestamp": "2026-04-10T10:10:44.248996Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T11:04:15.561605Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T11:04:16.352232Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T11:14:52.679070Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T11:14:53.490631Z",
+      "turn_index": 1
+    },
+    {
+      "role": "user",
+      "content": "My secret code is 1234. Remember this.",
+      "timestamp": "2026-04-10T10:50:25.307339Z",
+      "turn_index": 0
+    },
+    {
+      "role": "assistant",
+      "content": "Your secret code is 1234, got it. What would you like to do with this code, or is there something else I can help you with?",
+      "timestamp": "2026-04-10T10:50:29.155585Z",
+      "turn_index": 1
+    }
+  ]
+}

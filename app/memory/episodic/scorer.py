@@ -15,7 +15,7 @@ Recalled memories get an importance boost (spaced repetition effect).
 """
 import math
 from datetime import datetime, timezone
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from app.models.memory import EpisodicMemory
 
@@ -36,27 +36,36 @@ class EbbinghausScorer:
         """
         Compute retention score for a memory.
 
-        Args:
-            importance: 0.0 → 1.0, higher = more important
-            days_since_created: Age of memory in days (can be fractional)
-            recall_count: How many times this memory was retrieved/used
+        Formula: R = e^(-t / S)
+        Where:
+            t = time since creation in days
+            S = 14 * (importance + 0.1) * (1 + 0.5 * recall_count)
+
+        The 14-day base period means a medium-importance memory (0.5)
+        with no recalls decays to ~50% after ~5.8 days.
+        The +0.1 floor prevents near-zero importance from causing
+        instant decay (division-by-near-zero).
+
+        This formula matches the SQL bulk update in episodic/store.py
+        to ensure consistent scoring across Python and database paths.
 
         Returns:
             Retention score 0.0 → 1.0
         """
-        if importance <= 0:
-            importance = 0.01  # avoid division by zero
+        if importance < 0:
+            importance = 0.0
 
-        # Stability grows with importance and use
-        stability = importance * (1 + 0.3 * recall_count)
+        # Stability grows with importance and recall frequency
+        # 14-day base period with importance floor of 0.1
+        stability = 14.0 * (importance + 0.1) * (1 + 0.5 * recall_count)
 
         # Ebbinghaus: R = e^(-t/S)
         retention = math.exp(-days_since_created / stability)
         return max(0.0, min(1.0, retention))
 
-    def score_memory(self, memory: EpisodicMemory) -> float:
+    def score_memory(self, memory: EpisodicMemory, sim_now: Optional[datetime] = None) -> float:
         """Compute decay score for an EpisodicMemory object."""
-        now = datetime.now(timezone.utc)
+        now = sim_now or datetime.now(timezone.utc)
         days = (now - memory.created_at).total_seconds() / 86400.0
         return self.score(
             importance=memory.importance,

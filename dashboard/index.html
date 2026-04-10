@@ -232,7 +232,6 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
-            height: 100%;
         }
 
         .payload-section {
@@ -259,10 +258,10 @@
             padding: 16px;
             font-family: var(--font-mono);
             font-size: 0.8rem;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             white-space: pre-wrap;
-            word-break: break-all;
+            word-break: break-word;
             color: var(--text-secondary);
         }
 
@@ -717,8 +716,10 @@
                     Auth Key:
                     <input type="password" class="api-input" id="api-key" value="neuromem-dev-key-change-me">
                 </div>
-                <div style="margin-top:6px;">
-                    Private Tenant UUID: <span class="id-tag" id="tenant-id"></span>
+                <div style="margin-top:6px; display:flex; gap:10px; align-items:center;">
+                    UUID (User Memory Space): 
+                    <input type="text" class="api-input id-tag" id="tenant-id" style="width: 140px; text-align: center; font-weight: bold;" value="">
+                    <button class="btn-admin" onclick="changeUser()" style="padding: 4px 10px; background: rgba(0, 229, 255, 0.1);">Switch</button>
                 </div>
             </div>
         </div>
@@ -845,8 +846,15 @@
 
     <script>
         // ── App State ──────────────────────────────────────────────────
+        // Persist userId in localStorage so history isn't lost on refresh
+        let savedUserId = localStorage.getItem('neuromem_user_id');
+        if (!savedUserId) {
+            savedUserId = 'sess_' + Math.random().toString(36).substring(2, 10);
+            localStorage.setItem('neuromem_user_id', savedUserId);
+        }
+
         const state = {
-            userId: 'sess_' + Math.random().toString(36).substring(2, 10),
+            userId: savedUserId,
             sessionId: null,
             isFirstMessage: true,
             graphLoaded: false,
@@ -856,7 +864,31 @@
         const API_BASE = window.location.origin;
 
         // ── Init UI ────────────────────────────────────────────────────
-        document.getElementById('tenant-id').textContent = state.userId;
+        document.getElementById('tenant-id').value = state.userId;
+
+        function changeUser() {
+            const newUser = document.getElementById('tenant-id').value.trim();
+            if (newUser && newUser !== state.userId) {
+                localStorage.setItem('neuromem_user_id', newUser);
+                state.userId = newUser;
+                state.sessionId = null; 
+                state.isFirstMessage = true;
+                
+                document.getElementById('chat-stream').innerHTML = '<div class="bubble system">Memory Sandbox switched to user: ' + newUser + '.</div>';
+                document.getElementById('stat-entities').textContent = '0';
+                document.getElementById('stat-memories').textContent = '0';
+                
+                const emptyBoxes = ['code-tier-1', 'code-tier-2', 'code-tier-3', 'code-tier-4', 'code-system-prompt'];
+                emptyBoxes.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = 'Empty';
+                });
+                
+                updateStateView();
+                fetchGraph();
+                showInsight('User Context Switched', 'You are now interacting as ' + newUser + '.', 'History is strictly isolated.');
+            }
+        }
 
         document.getElementById('btn-start').addEventListener('click', () => {
             document.getElementById('welcome-modal').style.opacity = '0';
@@ -940,10 +972,25 @@
                 });
                 const data = await res.json();
                 
-                document.getElementById('code-tier-1').textContent = JSON.stringify(data.working, null, 2);
-                document.getElementById('code-tier-2').textContent = JSON.stringify(data.episodic, null, 2);
-                document.getElementById('code-tier-3').textContent = JSON.stringify(data.semantic, null, 2);
-                document.getElementById('code-tier-4').textContent = JSON.stringify(data.graph, null, 2);
+                // Only update if not already showing fresh debug data from a recent chat
+                const tierBoxes = [
+                    {id: 'code-tier-1', data: data.working},
+                    {id: 'code-tier-2', data: data.episodic},
+                    {id: 'code-tier-3', data: data.semantic},
+                    {id: 'code-tier-4', data: data.graph}
+                ];
+
+                tierBoxes.forEach(box => {
+                    const el = document.getElementById(box.id);
+                    // If the box is currently showing "No ... Context" or "Empty", then update it
+                    if (el.textContent.includes('No ') || el.textContent === 'Empty' || el.textContent === '[]' || el.textContent === '') {
+                        el.textContent = box.data && box.data.length ? JSON.stringify(box.data, null, 2) : 'Empty';
+                    }
+                });
+                
+                // Use node_count from graph data for accurate entity display
+                document.getElementById('stat-entities').textContent = data.graph_node_count || (data.graph_nodes || []).length || 0;
+                document.getElementById('stat-memories').textContent = (data.episodic || []).length + (data.semantic || []).length;
             } catch (e) {
                 console.error(e);
             }
@@ -1011,8 +1058,23 @@
                         document.getElementById('code-system-prompt').textContent = data.memory_debug.system_prompt;
                     }
 
-                    const tiers = new Set(data.memory_debug.memories.map(m => m.tier));
-                    if (tiers.has('graph') && !state.insightsShown.has('graph_retrieval')) {
+                    // Populate tier boxes immediately from debug data
+                    const tierMap = {WORKING: [], EPISODIC: [], SEMANTIC: [], GRAPH: []};
+                    data.memory_debug.memories.forEach(m => {
+                        const t = (m.tier || '').toUpperCase();
+                        if (tierMap[t]) tierMap[t].push(m.content);
+                    });
+                    
+                    // Only update if we have debug data, otherwise let updateStateView handle it
+                    if (data.memory_debug.memories.length > 0) {
+                        document.getElementById('code-tier-1').textContent = tierMap.WORKING.length ? tierMap.WORKING.join('\n---\n') : 'No Working Context';
+                        document.getElementById('code-tier-2').textContent = tierMap.EPISODIC.length ? tierMap.EPISODIC.join('\n---\n') : 'No Episodic Context';
+                        document.getElementById('code-tier-3').textContent = tierMap.SEMANTIC.length ? tierMap.SEMANTIC.join('\n---\n') : 'No Semantic Context';
+                        document.getElementById('code-tier-4').textContent = tierMap.GRAPH.length ? tierMap.GRAPH.join('\n---\n') : 'No Graph Context';
+                    }
+
+                    const tiers = new Set(data.memory_debug.memories.map(m => (m.tier || '').toUpperCase()));
+                    if (tiers.has('GRAPH') && !state.insightsShown.has('graph_retrieval')) {
                         state.insightsShown.add('graph_retrieval');
                         showInsight('Multi-Hop Routing', 
                             'The prompt was injected with Relationship context from Tier 4 (Neo4j Graph).',
@@ -1020,12 +1082,21 @@
                     }
                 }
 
-                if (document.querySelector('.tab[data-target="lay-payload"]').classList.contains('active')) {
-                    updateStateView();
+                // If not in payload tab, update stats only
+                if (!document.querySelector('.tab[data-target="lay-payload"]').classList.contains('active')) {
+                    // Update stats silently
+                    fetch(`${API_BASE}/memory/state`, {
+                        headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
+                    }).then(res => res.json()).then(stateData => {
+                        document.getElementById('stat-entities').textContent = stateData.graph_node_count || (stateData.graph_nodes || []).length || 0;
+                    });
                 }
 
-                // Wait 4.5s for the FastAPI BackgroundTask and LLM to finish extraction
-                setTimeout(fetchGraph, 4500);
+                // Wait 2.0s for the FastAPI BackgroundTask and LLM to finish extraction
+                setTimeout(() => {
+                    fetchGraph();
+                    updateStateView();
+                }, 2000);
 
             } catch (e) {
                 document.getElementById(typingId).remove();
@@ -1043,7 +1114,7 @@
             
             let html = text;
             if (memoryDebug && memoryDebug.memories.length > 0) {
-                const tags = Array.from(new Set(memoryDebug.memories.map(m => m.tier))).map(t => `<div class="citation-badge">Used: Tier-${t.toUpperCase()}</div>`).join('');
+                const tags = Array.from(new Set(memoryDebug.memories.map(m => (m.tier || '').toUpperCase()))).map(t => `<div class="citation-badge">Used: Tier-${t}</div>`).join('');
                 html += `<div class="memory-citations">${tags}</div>`;
             }
             
@@ -1075,11 +1146,12 @@
             }
 
             memories.forEach(mem => {
+                const tier = (mem.tier || '').toLowerCase(); // Ensure lowercase for CSS classes
                 const div = document.createElement('div');
-                div.className = `mem-card tier-${mem.tier}`;
+                div.className = `mem-card tier-${tier}`;
                 div.innerHTML = `
                     <div class="mc-top">
-                        <span class="mc-tier">${mem.tier}</span>
+                        <span class="mc-tier">${tier.toUpperCase()}</span>
                         <span style="opacity:0.6;">Score: ${mem.relevance.toFixed(3)}</span>
                     </div>
                     <div class="mc-text">${mem.content}</div>
@@ -1261,26 +1333,44 @@
         }
 
         // ── Render Static Decay Chart ────────────────────────────────
+        // Formula: R = e^(-t / S), where S = 14 * (importance + 0.1) * (1 + 0.5 * recall_count)
+        // This matches the actual SQL formula in episodic/store.py
         const ctx = document.getElementById('canvas-decay').getContext('2d');
         const days = Array.from({length: 30}, (_,i)=>i);
+        
+        // S values from actual formula: S = 14 * (imp + 0.1) * (1 + 0.5 * recalls)
+        const S_high_imp_recalled = 14 * (0.9 + 0.1) * (1 + 0.5 * 5);  // imp=0.9, 5 recalls → S=49
+        const S_mid_imp_once     = 14 * (0.5 + 0.1) * (1 + 0.5 * 1);   // imp=0.5, 1 recall  → S=12.6
+        const S_low_imp_never    = 14 * (0.2 + 0.1) * (1 + 0.5 * 0);   // imp=0.2, 0 recalls → S=4.2
+        const S_trivial          = 14 * (0.0 + 0.1) * (1 + 0.5 * 0);   // imp=0.0, 0 recalls → S=1.4
+
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: days,
                 datasets: [
-                    { label: 'Frequently Recalled (S=2.5)', data: days.map(t => Math.exp(-t/2.5)), borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.1)', fill: true, tension: 0.4 },
-                    { label: 'One Time Mention (S=0.8)', data: days.map(t => Math.exp(-t/0.8)), borderColor: '#FFAB00', backgroundColor: 'rgba(255,171,0,0.1)', fill: true, tension: 0.4 }
+                    { label: `Critical + Recalled (S=${S_high_imp_recalled.toFixed(1)})`, data: days.map(t => Math.exp(-t/S_high_imp_recalled)), borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.08)', fill: true, tension: 0.4, borderWidth: 2.5 },
+                    { label: `Medium + 1 Recall (S=${S_mid_imp_once.toFixed(1)})`,  data: days.map(t => Math.exp(-t/S_mid_imp_once)),  borderColor: '#B200FF', backgroundColor: 'rgba(178,0,255,0.08)', fill: true, tension: 0.4, borderWidth: 2 },
+                    { label: `Low Importance (S=${S_low_imp_never.toFixed(1)})`,     data: days.map(t => Math.exp(-t/S_low_imp_never)), borderColor: '#FFAB00', backgroundColor: 'rgba(255,171,0,0.08)', fill: true, tension: 0.4, borderWidth: 2 },
+                    { label: `Trivial Mention (S=${S_trivial.toFixed(1)})`,           data: days.map(t => Math.exp(-t/S_trivial)),       borderColor: '#F85149', backgroundColor: 'rgba(248,81,73,0.08)', fill: true, tension: 0.4, borderWidth: 1.5, borderDash: [5,3] },
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 plugins: {
-                    legend: { labels: { color: '#A0A0BA', font: {family: 'Outfit'} } },
-                    title: { display: true, text: 'Episodic Memory Math: R = e^(-t/S)', color: '#fff' }
+                    legend: { labels: { color: '#A0A0BA', font: {family: 'Outfit', size: 11} } },
+                    title: { display: true, text: 'Ebbinghaus Decay: R = e^(-t / S)  |  S = 14 × (importance + 0.1) × (1 + 0.5 × recalls)', color: '#fff', font: {size: 13} },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.dataset.label}: ${(ctx.parsed.y * 100).toFixed(1)}% retention`;
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    x: { ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} },
-                    y: { min: 0, max: 1, ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} }
+                    x: { title: {display: true, text: 'Days Since Creation', color: '#656580'}, ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} },
+                    y: { min: 0, max: 1, title: {display: true, text: 'Retention Score', color: '#656580'}, ticks: {color: '#656580', callback: v => (v*100)+'%'}, grid: {color: 'rgba(255,255,255,0.05)'} }
                 }
             }
         });

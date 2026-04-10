@@ -66,8 +66,14 @@ Do NOT mention the memory system or that you have stored memories. Act as if you
             semantic = [m for m in memories if m.tier == MemoryTier.SEMANTIC]
             episodic = [m for m in memories if m.tier == MemoryTier.EPISODIC]
             working = [m for m in memories if m.tier == MemoryTier.WORKING]
+            graph = [m for m in memories if m.tier == MemoryTier.GRAPH]
 
             sections = []
+
+            if graph:
+                section = "## Relationships & Knowledge Graph\n"
+                section += "\n".join(f"- {m.content}" for m in graph)
+                sections.append(section)
 
             if semantic:
                 section = "## What I Know About You (Long-Term)\n"

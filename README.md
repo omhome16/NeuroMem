@@ -1,4 +1,4 @@
-# NeuroMem v3.0
+# NeuroMem 
 > **🧠 Human-Inspired Persistent Memory Engine for LLMs**
 
 NeuroMem is an advanced, standalone cognitive memory service that sits seamlessly between any Large Language Model (LLM) application and the model itself. It achieves essentially human-like, continuous learning by mirroring actual human cognitive processes. 

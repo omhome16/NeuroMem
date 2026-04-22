@@ -43,6 +43,16 @@ async def health_check():
     except Exception as e:
         checks["qdrant"] = f"error: {e}"
 
+    # Neo4j
+    try:
+        from app.db.neo4j_client import get_neo4j_driver
+        driver = get_neo4j_driver()
+        async with driver.session() as session:
+            await session.run("RETURN 1")
+        checks["neo4j"] = "ok"
+    except Exception as e:
+        checks["neo4j"] = f"error: {e}"
+
     all_ok = all(v == "ok" for v in checks.values())
     return {
         "status": "healthy" if all_ok else "degraded",

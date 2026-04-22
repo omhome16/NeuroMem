@@ -179,6 +179,7 @@ async def clear_memories(
     user_id: str = Depends(verify_api_key),
     episodic_store: EpisodicMemoryStore = Depends(get_episodic_store),
     semantic_store: SemanticMemoryStore = Depends(get_semantic_store),
+    graph: KnowledgeGraph = Depends(get_knowledge_graph),
 ):
     """
     GDPR-compliant full memory wipe.
@@ -190,12 +191,19 @@ async def clear_memories(
     # Clear semantic (Qdrant)
     await semantic_store.delete_user_memories(user_id)
 
+    # Clear knowledge graph (Neo4j)
+    graph_deleted = 0
+    try:
+        graph_deleted = await graph.delete_user_graph(user_id)
+    except Exception as e:
+        logger.warning("graph_clear_failed", extra={"error": str(e)})
+
     # Clear working memory sessions (Redis)
     # Also clear clock offsets and procedural memory for this user
     redis = await get_redis_client()
     keys_deleted = 0
     for pattern in [
-        "working:*:turns", "working:*:summary", "working:*:meta",
+        f"working:{user_id}:*:turns", f"working:{user_id}:*:summary", f"working:{user_id}:*:meta",
         f"procedural:{user_id}", f"procedural_turns:{user_id}",
         f"clock_offset:{user_id}", f"episodic_cache:{user_id}:*",
     ]:
@@ -217,6 +225,7 @@ async def clear_memories(
         "user_id": user_id,
         "episodic_deleted": deleted_episodic,
         "redis_keys_deleted": keys_deleted,
+        "graph_nodes_deleted": graph_deleted,
     }
 
 

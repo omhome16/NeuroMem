@@ -117,13 +117,13 @@ async def chat(
     turns = await working_memory.get_turns(user_id, session_id)
     messages = [{"role": t.role, "content": t.content} for t in turns]
 
-    # Step 6: Call LLM via LangChain
+    # Step 7: Call LLM via LangChain
     reply = await llm_client.chat(messages=messages, system=system_prompt)
 
-    # Step 7: Store assistant turn
+    # Step 8: Store assistant turn
     await working_memory.add_turn(user_id, session_id, "assistant", reply)
 
-    latency_ms = int((time.time() - start_time) * 1000)
+    latency_ms = round((time.time() - start_time) * 1000)
 
     # Step 9: Background tasks — surprise-gated extraction + graph update + procedural
     background_tasks.add_task(
@@ -148,7 +148,6 @@ async def chat(
     # Step 10: Build enhanced debug info for transparency
     debug_info = None
     if request.include_memory_debug:
-        # Step 10: Build enhanced debug info for transparency
         debug_memories = []
         graph_facts = []
         for m in memories:
@@ -220,7 +219,7 @@ async def _background_memory_pipeline(
 
         # Step 2: Surprise-gate — only store novel information
         existing_memories, existing_ids = await episodic_store.get_recent_contents_with_ids(
-            user_id=user_id, limit=50
+            user_id=user_id, limit=50, sim_now=sim_now
         )
 
         stored_count = 0

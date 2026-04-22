@@ -22,7 +22,7 @@ from app.core.llm_client import LLMClient
 from app.core.surprise_scorer import SurpriseScorer
 from app.core.contradiction_detector import ContradictionDetector
 from app.memory.episodic.scorer import EbbinghausScorer
-from app.memory.graph.entity_extractor import EntityExtractor
+from app.memory.graph.entity_extractor import EntityExtractor, EntityTriple
 from app.models.memory import EpisodicMemory, SemanticMemory, MemoryType
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class ConsolidationState(TypedDict):
     memories_to_delete: List[EpisodicMemory]
     clustered_episodes: Dict[str, List[EpisodicMemory]]
     semantic_facts: List[Dict[str, Any]]
-    graph_triples: List[Any]
+    graph_triples: List[EntityTriple]
     contradictions_resolved: int
     surprise_delta: float
 
@@ -71,7 +71,7 @@ class ConsolidationGraph:
         self.scorer = EbbinghausScorer()
         self._graph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    def _build_graph(self):
         graph = StateGraph(ConsolidationState)
 
         graph.add_node("score_memories", self._score_node)

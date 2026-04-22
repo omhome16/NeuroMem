@@ -3,463 +3,624 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroMem — Cognitive Architecture Dashboard</title>
-    <meta name="description" content="Interactive visualizer for the NeuroMem cognitive memory engine. Experience 5-tier context isolation and real-time knowledge graph generation.">
-    
-    <!-- Premium Web Fonts -->
+    <title>NeuroMem — Cognitive Memory Engine</title>
+    <meta name="description" content="Interactive dashboard for the NeuroMem cognitive memory engine. Visualize 5-tier memory architecture, knowledge graphs, and Ebbinghaus decay in real time.">
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-    
+
     <style>
+        /* ================================================================
+           DESIGN SYSTEM
+           ================================================================ */
         :root {
-            --bg-deep: #05050A;
-            --bg-glass: rgba(18, 18, 30, 0.6);
-            --bg-glass-hover: rgba(28, 28, 45, 0.8);
-            --border-glass: rgba(255, 255, 255, 0.08);
-            
-            --text-primary: #FFFFFF;
-            --text-secondary: #A0A0BA;
-            --text-muted: #656580;
-            
-            --accent-cyan: #00E5FF;
-            --accent-purple: #B200FF;
-            --accent-blue: #2979FF;
-            --accent-green: #00E676;
-            --accent-orange: #FFAB00;
-            
-            --glow-cyan: rgba(0, 229, 255, 0.3);
-            --glow-purple: rgba(178, 0, 255, 0.3);
-            
+            /* Surfaces */
+            --bg-root: #06060C;
+            --bg-primary: #0C0C16;
+            --bg-elevated: #121220;
+            --bg-glass: rgba(16, 16, 28, 0.65);
+            --bg-glass-strong: rgba(22, 22, 38, 0.85);
+            --bg-input: rgba(0, 0, 0, 0.35);
+
+            /* Borders */
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-default: rgba(255, 255, 255, 0.09);
+            --border-hover: rgba(255, 255, 255, 0.16);
+
+            /* Typography */
+            --text-primary: #F0F0F8;
+            --text-secondary: #9898B0;
+            --text-muted: #5C5C72;
+            --text-dim: #3A3A50;
+
+            /* Accent Palette */
+            --cyan: #00D8FF;
+            --cyan-soft: rgba(0, 216, 255, 0.12);
+            --cyan-glow: rgba(0, 216, 255, 0.25);
+
+            --purple: #A855F7;
+            --purple-soft: rgba(168, 85, 247, 0.12);
+            --purple-glow: rgba(168, 85, 247, 0.25);
+
+            --blue: #3B82F6;
+            --blue-soft: rgba(59, 130, 246, 0.12);
+
+            --green: #22C55E;
+            --green-soft: rgba(34, 197, 94, 0.12);
+
+            --amber: #F59E0B;
+            --amber-soft: rgba(245, 158, 11, 0.12);
+
+            --rose: #F43F5E;
+            --rose-soft: rgba(244, 63, 94, 0.12);
+
+            /* Tier Colors */
+            --tier-working: var(--blue);
+            --tier-episodic: var(--amber);
+            --tier-semantic: var(--purple);
+            --tier-graph: var(--green);
+            --tier-procedural: var(--cyan);
+
+            /* Fonts */
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
-            
-            --radius-lg: 16px;
-            --radius-md: 12px;
+
+            /* Radii */
+            --radius-xs: 6px;
             --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+            --shadow-glow-cyan: 0 0 24px var(--cyan-glow);
+            --shadow-glow-purple: 0 0 24px var(--purple-glow);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ── Reset ──────────────────────────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: var(--font-body);
-            background: var(--bg-deep);
+            background: var(--bg-root);
             color: var(--text-primary);
             height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(178, 0, 255, 0.08), transparent 40%),
-                radial-gradient(circle at 85% 30%, rgba(0, 229, 255, 0.08), transparent 40%);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* ── Welcome Modal ─────────────────────────────────────── */
-        #welcome-modal {
+        /* Ambient light effects */
+        body::before {
+            content: '';
             position: fixed;
             inset: 0;
-            background: rgba(5, 5, 10, 0.85);
-            backdrop-filter: blur(24px);
+            background:
+                radial-gradient(ellipse 60% 50% at 10% 40%, rgba(168, 85, 247, 0.06), transparent),
+                radial-gradient(ellipse 60% 50% at 90% 30%, rgba(0, 216, 255, 0.05), transparent),
+                radial-gradient(ellipse 40% 40% at 50% 90%, rgba(59, 130, 246, 0.04), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+
+        /* ================================================================
+           WELCOME MODAL
+           ================================================================ */
+        #welcome-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 6, 12, 0.92);
+            backdrop-filter: blur(40px);
             z-index: 9999;
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 1;
-            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 0.5s ease;
         }
 
-        .welcome-content {
-            background: rgba(20, 20, 35, 0.7);
-            border: 1px solid var(--border-glass);
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 600px;
+        #welcome-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .welcome-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-xl);
+            padding: 48px 44px;
+            max-width: 520px;
+            width: 90%;
             text-align: center;
-            box-shadow: 0 0 80px rgba(178, 0, 255, 0.15);
+            box-shadow: var(--shadow-lg), 0 0 80px rgba(168, 85, 247, 0.08);
             transform: translateY(0);
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.5s ease;
         }
 
-        .welcome-content h1 {
-            font-family: var(--font-display);
-            font-size: 2.5rem;
-            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        #welcome-overlay.hidden .welcome-card {
+            transform: translateY(20px);
+        }
+
+        .welcome-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--purple-soft);
+            color: var(--purple);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: var(--radius-full);
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 20px;
         }
 
-        .welcome-content p {
-            color: var(--text-secondary);
-            font-size: 1.05rem;
-            line-height: 1.6;
-            margin-bottom: 30px;
+        .welcome-card h1 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 14px;
         }
 
-        .btn-glow {
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        .welcome-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .welcome-card p strong { color: var(--text-primary); font-weight: 600; }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
             color: white;
             border: none;
-            padding: 14px 32px;
+            padding: 14px 36px;
             font-family: var(--font-display);
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
-            border-radius: 30px;
+            border-radius: var(--radius-full);
             cursor: pointer;
-            box-shadow: 0 0 20px var(--glow-purple);
+            box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
             transition: all 0.3s ease;
         }
 
-        .btn-glow:hover {
-            box-shadow: 0 0 40px var(--glow-purple);
+        .btn-primary:hover {
+            box-shadow: 0 6px 30px rgba(168, 85, 247, 0.45);
             transform: translateY(-2px);
         }
 
-        /* ── Header ───────────────────────────────────────────── */
-        .glass-header {
+        /* ================================================================
+           HEADER
+           ================================================================ */
+        .topbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 12px 24px;
-            background: var(--bg-glass);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-glass);
-            z-index: 10;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 54px;
+            background: var(--bg-glass-strong);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            position: relative;
+            z-index: 100;
         }
 
-        .logo-area {
+        .topbar-left {
             display: flex;
             align-items: center;
             gap: 12px;
-            font-family: var(--font-display);
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
         }
 
-        .logo-icon {
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+        .logo-mark {
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
-            box-shadow: 0 0 15px var(--glow-cyan);
+            font-size: 16px;
+            box-shadow: var(--shadow-glow-purple);
+            flex-shrink: 0;
         }
 
-        .session-info {
-            display: flex;
-            align-items: flex-end;
-            flex-direction: column;
-            gap: 4px;
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-        }
-
-        .session-info span.id-tag {
-            background: rgba(178, 0, 255, 0.15);
-            color: #E0B0FF;
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid rgba(178, 0, 255, 0.3);
-        }
-
-        .api-input {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-glass);
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-family: var(--font-mono);
-            font-size: 0.75rem;
-            outline: none;
-            width: 250px;
-            transition: all 0.3s;
-        }
-        
-        .api-input:focus {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        .admin-actions {
-            display: flex;
-            gap: 10px;
-            margin-right: 20px;
-        }
-
-        .btn-admin {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-glass);
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 6px;
+        .logo-text {
             font-family: var(--font-display);
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .logo-version {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-left: 4px;
+        }
+
+        .topbar-center {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-tool {
             display: flex;
             align-items: center;
             gap: 6px;
-        }
-
-        .btn-admin:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            border-color: var(--text-muted);
-        }
-
-        .btn-admin.accent-purple:hover {
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 10px var(--glow-purple);
-        }
-
-        .btn-admin.accent-cyan:hover {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 10px var(--glow-cyan);
-        }
-
-        /* ── Payload Viewer ───────────────────────────────────── */
-        .payload-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .payload-section {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-glass);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-        }
-
-        .ps-header {
-            padding: 10px 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border-bottom: 1px solid var(--border-glass);
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .ps-body {
-            padding: 16px;
-            font-family: var(--font-mono);
-            font-size: 0.8rem;
-            max-height: 250px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
             color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: var(--radius-xs);
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .tier-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .btn-tool:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .btn-tool .icon { font-size: 14px; }
+
+        .btn-tool.accent-cyan:hover {
+            border-color: rgba(0, 216, 255, 0.4);
+            box-shadow: 0 0 12px rgba(0, 216, 255, 0.1);
+            color: var(--cyan);
+        }
+
+        .btn-tool.accent-purple:hover {
+            border-color: rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.1);
+            color: var(--purple);
+        }
+
+        .btn-tool.accent-rose:hover {
+            border-color: rgba(244, 63, 94, 0.4);
+            color: var(--rose);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
             gap: 10px;
         }
 
+        .config-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-        /* ── Main Layout ──────────────────────────────────────── */
+        .config-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 5px 10px;
+            border-radius: var(--radius-xs);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .config-input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 2px var(--cyan-soft);
+        }
+
+        .config-input.key { width: 200px; }
+        .config-input.user { width: 130px; text-align: center; font-weight: 600; color: var(--cyan); }
+
+        .divider-v {
+            width: 1px;
+            height: 24px;
+            background: var(--border-default);
+        }
+
+        /* ================================================================
+           METRICS BAR
+           ================================================================ */
+        .metrics-bar {
+            display: flex;
+            height: 42px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 10;
+        }
+
+        .metric {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-right: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+        }
+
+        .metric:last-child { border-right: none; }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.6rem;
+        }
+
+        .metric-value.cyan { color: var(--cyan); }
+        .metric-value.purple { color: var(--purple); }
+        .metric-value.green { color: var(--green); }
+        .metric-value.amber { color: var(--amber); }
+
+        /* ================================================================
+           WORKSPACE (3-COLUMN)
+           ================================================================ */
         .workspace {
             display: grid;
-            grid-template-columns: 380px 1fr 380px;
+            grid-template-columns: 360px 1fr 360px;
             flex: 1;
             overflow: hidden;
-            gap: 1px;
-            background: var(--border-glass);
+            position: relative;
+            z-index: 1;
         }
 
-        .panel-glass {
-            background: var(--bg-deep);
+        .panel {
             display: flex;
             flex-direction: column;
-            position: relative;
             min-height: 0;
+            border-right: 1px solid var(--border-subtle);
         }
 
-        .panel-header {
-            padding: 16px 20px;
-            font-family: var(--font-display);
-            font-weight: 600;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--accent-cyan);
-            border-bottom: 1px solid var(--border-glass);
-            background: linear-gradient(to right, rgba(0,229,255,0.05), transparent);
+        .panel:last-child { border-right: none; }
+
+        .panel-head {
+            padding: 14px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            border-bottom: 1px solid var(--border-subtle);
+            background: rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
         }
 
-        /* ── Chat ────────────────────────────────────────────── */
-        .chat-stream {
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-secondary);
+        }
+
+        .panel-badge {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* ── CHAT PANEL ────────────────────────────────────────── */
+        .chat-feed {
             flex: 1;
             overflow-y: auto;
-            padding: 24px;
+            padding: 20px 18px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 14px;
         }
 
-        .chat-stream::-webkit-scrollbar { width: 6px; }
-        .chat-stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-        .bubble {
-            max-width: 88%;
-            padding: 14px 18px;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        .msg {
+            max-width: 90%;
+            padding: 12px 16px;
+            font-size: 0.88rem;
+            line-height: 1.65;
+            animation: msgIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            word-wrap: break-word;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(15px); }
+        @keyframes msgIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .bubble.user {
+        .msg.user {
             align-self: flex-end;
-            background: linear-gradient(135deg, var(--accent-blue), #1e5dd9);
+            background: linear-gradient(135deg, var(--blue), #2563EB);
             color: white;
-            border-radius: 18px 18px 4px 18px;
-            box-shadow: 0 4px 15px rgba(41, 121, 255, 0.2);
+            border-radius: 16px 16px 4px 16px;
+            box-shadow: 0 3px 12px rgba(59, 130, 246, 0.2);
         }
 
-        .bubble.assistant {
+        .msg.assistant {
             align-self: flex-start;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 18px 18px 18px 4px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-default);
+            border-radius: 16px 16px 16px 4px;
             color: var(--text-primary);
         }
 
-        .bubble.system {
+        .msg.system-msg {
             align-self: center;
             background: transparent;
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-family: var(--font-mono);
             text-align: center;
+            padding: 6px 0;
         }
 
-        .memory-citations {
+        .msg-citations {
             margin-top: 10px;
             padding-top: 8px;
-            border-top: 1px solid var(--border-glass);
+            border-top: 1px solid var(--border-subtle);
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 5px;
         }
 
-        .citation-badge {
-            font-size: 0.65rem;
+        .cite-tag {
+            font-size: 0.6rem;
             font-family: var(--font-mono);
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text-secondary);
+            padding: 2px 7px;
+            border-radius: var(--radius-xs);
+            font-weight: 500;
+            letter-spacing: 0.3px;
         }
 
-        .chat-input-box {
-            padding: 20px;
-            background: var(--bg-glass);
+        .cite-tag.working { background: var(--blue-soft); color: var(--blue); }
+        .cite-tag.episodic { background: var(--amber-soft); color: var(--amber); }
+        .cite-tag.semantic { background: var(--purple-soft); color: var(--purple); }
+        .cite-tag.graph { background: var(--green-soft); color: var(--green); }
+
+        .chat-composer {
+            padding: 16px 18px;
+            background: var(--bg-glass-strong);
             backdrop-filter: blur(12px);
-            border-top: 1px solid var(--border-glass);
+            border-top: 1px solid var(--border-subtle);
+            flex-shrink: 0;
         }
 
-        .input-wrapper {
+        .composer-wrap {
             display: flex;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-glass);
-            border-radius: 24px;
-            padding: 6px;
-            position: relative;
-        }
-        
-        .input-wrapper:focus-within {
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 20px rgba(178, 0, 255, 0.15);
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-full);
+            padding: 5px 5px 5px 18px;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        .chat-textfield {
+        .composer-wrap:focus-within {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px var(--purple-soft);
+        }
+
+        .composer-input {
             flex: 1;
             background: transparent;
             border: none;
-            color: white;
-            padding: 10px 16px;
+            color: var(--text-primary);
             font-family: var(--font-body);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             outline: none;
         }
 
+        .composer-input::placeholder { color: var(--text-dim); }
+
         .btn-send {
-            background: var(--accent-purple);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--purple), var(--blue));
             border: none;
             color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
         }
 
         .btn-send:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px var(--glow-purple);
+            transform: scale(1.06);
+            box-shadow: 0 0 16px var(--purple-glow);
         }
 
-        .btn-send:disabled {
-            opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none;
+        .btn-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        /* Typing indicator */
+        .typing-dots { display: flex; gap: 4px; padding: 4px; align-items: center; }
+        .typing-dots span {
+            width: 6px; height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: pulse 1.4s infinite ease-in-out both;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes pulse {
+            0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1.15); }
         }
 
-        /* ── Center Vis ──────────────────────────────────────── */
+        /* ── CENTER VIS PANEL ──────────────────────────────────── */
         .vis-tabs {
             display: flex;
-            background: var(--bg-glass);
-            border-bottom: 1px solid var(--border-glass);
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-subtle);
+            flex-shrink: 0;
         }
 
-        .tab {
+        .vtab {
             flex: 1;
             text-align: center;
-            padding: 14px;
+            padding: 11px 0;
             font-family: var(--font-display);
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             font-weight: 500;
             color: var(--text-muted);
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
+            user-select: none;
         }
 
-        .tab:hover { color: var(--text-secondary); }
-        .tab.active { 
-            color: var(--accent-cyan); 
-            border-bottom-color: var(--accent-cyan);
-            background: linear-gradient(to top, rgba(0,229,255,0.05), transparent);
+        .vtab:hover { color: var(--text-secondary); }
+
+        .vtab.active {
+            color: var(--cyan);
+            border-bottom-color: var(--cyan);
+            background: linear-gradient(to top, rgba(0, 216, 255, 0.04), transparent);
         }
 
-        .vis-container {
+        .vis-area {
             flex: 1;
             position: relative;
+            min-height: 0;
         }
 
         .vis-layer {
@@ -467,10 +628,10 @@
             inset: 0;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.4s ease;
+            transition: opacity 0.35s ease;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 18px;
             overflow-y: auto;
         }
 
@@ -482,362 +643,431 @@
         /* Graph Tooltip */
         #graph-tooltip {
             position: absolute;
-            background: rgba(15, 15, 25, 0.95);
-            backdrop-filter: blur(8px);
-            border: 1px solid var(--accent-cyan);
-            padding: 12px 16px;
-            border-radius: 8px;
-            color: white;
-            font-size: 0.8rem;
+            background: var(--bg-glass-strong);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--cyan);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.78rem;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.2s;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            z-index: 100;
-            max-width: 250px;
+            transition: opacity 0.15s;
+            box-shadow: var(--shadow-lg);
+            z-index: 200;
+            max-width: 260px;
         }
 
-        .tt-title { font-family: var(--font-display); font-weight: 600; color: var(--accent-cyan); margin-bottom: 4px; }
-        .tt-desc { color: var(--text-secondary); line-height: 1.4; }
+        .tt-label { font-family: var(--font-display); font-weight: 600; color: var(--cyan); margin-bottom: 3px; font-size: 0.8rem; }
+        .tt-detail { color: var(--text-secondary); line-height: 1.5; }
 
-        /* Pipeline Trace List */
-        .trace-item {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            margin-bottom: 12px;
+        /* Pipeline Trace */
+        .trace-step {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            margin-bottom: 10px;
             overflow: hidden;
-            transition: all 0.3s;
             cursor: pointer;
+            transition: all 0.2s ease;
         }
-        
-        .trace-item:hover { border-color: rgba(255,255,255,0.2); }
 
-        .trace-header {
-            padding: 14px 18px;
+        .trace-step:hover { border-color: var(--border-hover); }
+
+        .trace-step.glow {
+            border-color: var(--cyan);
+            box-shadow: 0 0 12px var(--cyan-soft);
+        }
+
+        .trace-top {
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 12px;
         }
 
-        .trace-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
+        .trace-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+            transition: background 0.3s;
+            flex-shrink: 0;
         }
 
-        .trace-title { flex: 1; font-weight: 500; }
-        .trace-latency { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-green); }
+        .trace-step.glow .trace-dot { background: var(--cyan); box-shadow: 0 0 8px var(--cyan-glow); }
+        .trace-step.done .trace-dot { background: var(--green); }
 
-        .trace-body {
-            padding: 0 18px;
+        .trace-name { flex: 1; font-weight: 500; font-size: 0.85rem; }
+        .trace-time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--green); }
+
+        .trace-detail {
+            padding: 0 16px;
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s;
-            background: rgba(0,0,0,0.2);
+            transition: max-height 0.35s ease, padding 0.35s ease;
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            line-height: 1.5;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            background: rgba(0, 0, 0, 0.15);
         }
 
-        .trace-item.expanded .trace-body {
-            padding: 14px 18px;
+        .trace-step.open .trace-detail {
+            max-height: 120px;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        /* Payload viewer */
+        .payload-block {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .payload-head {
+            padding: 8px 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .payload-body {
+            padding: 12px 14px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
             max-height: 200px;
-            border-top: 1px solid var(--border-glass);
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
 
-        .trace-item.active-glow {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px var(--glow-cyan);
+        .tier-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
-        /* ── Right Panel ──────────────────────────────────────── */
-        .memory-scroller {
+        /* ── RIGHT PANEL: MEMORY INSPECTOR ─────────────────────── */
+        .mem-feed {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
 
-        .mem-card {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 12px;
-            padding: 16px;
+        .mem-item {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 14px 14px 18px;
             position: relative;
-            animation: slideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: memSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes slideLeft {
-            from { opacity: 0; transform: translateX(30px); }
+        @keyframes memSlide {
+            from { opacity: 0; transform: translateX(20px); }
             to { opacity: 1; transform: translateX(0); }
         }
 
-        .mem-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-            border-radius: 12px 0 0 12px;
-        }
-        .mem-card.tier-working::before { background: var(--accent-blue); }
-        .mem-card.tier-episodic::before { background: var(--accent-orange); }
-        .mem-card.tier-semantic::before { background: var(--accent-purple); }
-        .mem-card.tier-graph::before { background: var(--accent-green); }
-
-        .mc-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;}
-        .mc-tier { font-weight: 600; }
-        .tier-working .mc-tier { color: var(--accent-blue); }
-        .tier-episodic .mc-tier { color: var(--accent-orange); }
-        .tier-semantic .mc-tier { color: var(--accent-purple); }
-        .tier-graph .mc-tier { color: var(--accent-green); }
-
-        .mc-text {
-            font-size: 0.9rem;
-            line-height: 1.5;
-            color: #E8E8F0;
+        /* Left accent strip */
+        .mem-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+            border-radius: var(--radius-md) 0 0 var(--radius-md);
         }
 
-        /* ── Interviewer Insights Toast System ───────────────── */
-        #toast-container {
+        .mem-item.t-working::before { background: var(--tier-working); }
+        .mem-item.t-episodic::before { background: var(--tier-episodic); }
+        .mem-item.t-semantic::before { background: var(--tier-semantic); }
+        .mem-item.t-graph::before { background: var(--tier-graph); }
+
+        .mem-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mem-tier-label { font-weight: 600; }
+        .t-working .mem-tier-label { color: var(--tier-working); }
+        .t-episodic .mem-tier-label { color: var(--tier-episodic); }
+        .t-semantic .mem-tier-label { color: var(--tier-semantic); }
+        .t-graph .mem-tier-label { color: var(--tier-graph); }
+
+        .mem-score { color: var(--text-muted); }
+
+        .mem-content {
+            font-size: 0.85rem;
+            line-height: 1.55;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            margin-top: 60px;
+            line-height: 1.7;
+        }
+
+        .empty-state .icon { font-size: 2rem; opacity: 0.25; margin-bottom: 10px; }
+
+        /* ── TOAST SYSTEM ──────────────────────────────────────── */
+        #toasts {
             position: fixed;
-            bottom: 30px;
-            left: 30px;
+            bottom: 24px;
+            left: 24px;
             z-index: 5000;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             pointer-events: none;
         }
 
-        .insight-toast {
-            background: rgba(15, 15, 25, 0.85);
+        .toast {
+            background: var(--bg-glass-strong);
             backdrop-filter: blur(16px);
-            border-left: 4px solid var(--accent-cyan);
-            border-radius: 8px;
-            padding: 16px 20px;
-            width: 380px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            border-left: 3px solid var(--cyan);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            width: 360px;
+            box-shadow: var(--shadow-lg);
             pointer-events: all;
-            animation: toastIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: toastSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .insight-toast.outro {
-            animation: toastOut 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .toast.exit { animation: toastExit 0.35s ease forwards; }
+
+        @keyframes toastSlide {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes toastExit {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(-30px); }
         }
 
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(-50px) scale(0.95); }
-            to { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0) scale(1); }
-            to { opacity: 0; transform: translateX(-50px) scale(0.95); }
-        }
-
-        .toast-label {
+        .toast-title {
             font-family: var(--font-display);
-            font-size: 0.75rem;
-            color: var(--accent-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+            font-size: 0.72rem;
             font-weight: 700;
-            margin-bottom: 6px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .toast-body {
-            font-size: 0.85rem;
+        .toast-text {
+            font-size: 0.82rem;
             color: var(--text-primary);
             line-height: 1.6;
         }
-        
-        .toast-sub {
+
+        .toast-compare {
             color: var(--text-muted);
+            font-size: 0.75rem;
             font-style: italic;
-            font-size: 0.8rem;
             margin-top: 6px;
-            border-top: 1px solid var(--border-glass);
             padding-top: 6px;
+            border-top: 1px solid var(--border-subtle);
         }
 
-        /* ── Loaders ───────────────────────────────────────── */
-        .typing { display: flex; gap: 4px; padding: 4px 6px; }
-        .typing span { width: 6px; height: 6px; background: #fff; border-radius: 50%; opacity: 0.4; animation: blink 1.4s infinite both; }
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes blink { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        /* Status indicator */
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: statusPulse 2s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
 
-    <!-- INTERVIEWER / FIRST LOAD MODAL -->
-    <div id="welcome-modal">
-        <div class="welcome-content">
-            <h1>NeuroMem Engine</h1>
-            <p>Welcome to the <strong>Human-Inspired Cognitive Architecture</strong>.<br><br>
-               Unlike standard RAG which blindly indexes text into a flat vector database, NeuroMem uses a 5-tier biological memory equivalent (incorporating Ebbinghaus decay, Neo4j Temporal Graphs, and Titans-inspired gating).<br><br>
-               <strong>Start chatting to watch the architecture build your structural profile in real time.</strong>
-            </p>
-            <button class="btn-glow" id="btn-start">Initialize Engine Initialization</button>
+    <!-- WELCOME MODAL -->
+    <div id="welcome-overlay">
+        <div class="welcome-card">
+            <div class="welcome-badge">🧬 Cognitive Memory Engine</div>
+            <h1>NeuroMem v3</h1>
+            <p>A <strong>5-tier biological memory architecture</strong> for LLMs — featuring Ebbinghaus decay, temporal knowledge graphs, Titans-inspired novelty gating, and cross-encoder re-ranking.<br><br>
+            Start chatting to watch the engine build your cognitive profile in real time.</p>
+            <button class="btn-primary" id="btn-enter">
+                <span>⚡</span> Initialize Engine
+            </button>
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATIONS -->
-    <div id="toast-container"></div>
+    <!-- TOASTS -->
+    <div id="toasts"></div>
 
     <!-- HEADER -->
-    <!-- HEADER -->
-    <header class="glass-header">
-        <div class="logo-area">
-            <div class="logo-icon">🧠</div>
-            NeuroMem <span style="font-weight:300; opacity:0.5; font-size:1rem;">v3.0</span>
+    <header class="topbar">
+        <div class="topbar-left">
+            <div class="logo-mark">🧠</div>
+            <div class="logo-text">NeuroMem<span class="logo-version">v3</span></div>
+            <div class="status-dot"></div>
         </div>
-        <div style="display: flex; align-items: center;">
-            <div class="admin-actions">
-                <button class="btn-admin accent-cyan" onclick="skipTime(15)">
-                    <span>⏳</span> Skip 15 Days
-                </button>
-                <button class="btn-admin accent-purple" onclick="forceConsolidate()">
-                    <span>⚙️</span> Consolidate
-                </button>
-            </div>
-            <div class="session-info">
-                <div style="display:flex; gap:10px; align-items:center;">
-                    Auth Key:
-                    <input type="password" class="api-input" id="api-key" value="neuromem-dev-key-change-me">
-                </div>
-                <div style="margin-top:6px; display:flex; gap:10px; align-items:center;">
-                    UUID (User Memory Space): 
-                    <input type="text" class="api-input id-tag" id="tenant-id" style="width: 140px; text-align: center; font-weight: bold;" value="">
-                    <button class="btn-admin" onclick="changeUser()" style="padding: 4px 10px; background: rgba(0, 229, 255, 0.1);">Switch</button>
-                </div>
-            </div>
+        <div class="topbar-center">
+            <button class="btn-tool accent-cyan" onclick="skipTime(15)">
+                <span class="icon">⏳</span> Skip 15 Days
+            </button>
+            <button class="btn-tool accent-purple" onclick="forceConsolidate()">
+                <span class="icon">⚙️</span> Consolidate
+            </button>
+            <button class="btn-tool accent-rose" onclick="clearAllMemory()">
+                <span class="icon">🗑️</span> Clear Memory
+            </button>
+        </div>
+        <div class="topbar-right">
+            <span class="config-label">Key</span>
+            <input type="password" class="config-input key" id="api-key" value="neuromem-dev-key-change-me">
+            <div class="divider-v"></div>
+            <span class="config-label">User</span>
+            <input type="text" class="config-input user" id="tenant-id" value="">
+            <button class="btn-tool" onclick="switchUser()" style="padding: 5px 10px;">Switch</button>
         </div>
     </header>
 
+    <!-- METRICS -->
+    <div class="metrics-bar">
+        <div class="metric">
+            <span class="metric-value cyan" id="stat-memories">0</span>
+            <span class="metric-label">Memories</span>
+        </div>
+        <div class="metric">
+            <span class="metric-value purple" id="stat-entities">0</span>
+            <span class="metric-label">Entities</span>
+        </div>
+        <div class="metric">
+            <span class="metric-value green" id="stat-latency">—</span>
+            <span class="metric-label">Latency</span>
+        </div>
+        <div class="metric">
+            <span class="metric-value amber" id="stat-tiers">0/5</span>
+            <span class="metric-label">Tiers Active</span>
+        </div>
+    </div>
+
     <!-- WORKSPACE -->
     <main class="workspace">
-        
+
         <!-- LEFT: Chat -->
-        <section class="panel-glass">
-            <div class="panel-header">
-                User Interaction
-                <span style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);">WebClient</span>
+        <section class="panel">
+            <div class="panel-head">
+                <span class="panel-title">💬 Conversation</span>
+                <span class="panel-badge">WebClient</span>
             </div>
-            <div class="chat-stream" id="chat-stream">
-                <div class="bubble system">Memory Sandbox Initialized. All history isolated to this session.</div>
+            <div class="chat-feed" id="chat-feed">
+                <div class="msg system-msg">Memory sandbox initialized. All data isolated to this session.</div>
             </div>
-            <div class="chat-input-box">
-                <div class="input-wrapper">
-                    <input type="text" id="chat-input" class="chat-textfield" placeholder="Tell me about yourself..." autocomplete="off">
+            <div class="chat-composer">
+                <div class="composer-wrap">
+                    <input type="text" id="chat-input" class="composer-input" placeholder="Tell me about yourself..." autocomplete="off">
                     <button id="btn-send" class="btn-send">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>
                     </button>
                 </div>
             </div>
         </section>
 
-        <!-- CENTER: Vis -->
-        <section class="panel-glass" style="border-left: 1px solid var(--border-glass); border-right: 1px solid var(--border-glass);">
-            <div style="display: flex; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border-glass);">
-                <div style="flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--border-glass);">
-                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-cyan); font-weight: 700;" id="stat-memories">0</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Memories</div>
-                </div>
-                <div style="flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--border-glass);">
-                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-purple); font-weight: 700;" id="stat-entities">0</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Entities</div>
-                </div>
-                <div style="flex: 1; padding: 10px; text-align: center;">
-                    <div style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--accent-green); font-weight: 700;" id="stat-latency">—</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Latency</div>
-                </div>
-            </div>
+        <!-- CENTER: Visualizations -->
+        <section class="panel" style="border-left: 1px solid var(--border-subtle);">
             <div class="vis-tabs">
-                <div class="tab active" data-target="lay-graph">Cognitive Graph</div>
-                <div class="tab" data-target="lay-pipeline">Pipeline Inspector</div>
-                <div class="tab" data-target="lay-decay">Decay Curves</div>
-                <div class="tab" data-target="lay-payload">Context & Payload</div>
+                <div class="vtab active" data-layer="layer-graph">Knowledge Graph</div>
+                <div class="vtab" data-layer="layer-pipeline">Pipeline Trace</div>
+                <div class="vtab" data-layer="layer-decay">Decay Curves</div>
+                <div class="vtab" data-layer="layer-payload">Context Payload</div>
             </div>
-            <div class="vis-container">
-                <!-- Tooltip for Graph -->
+            <div class="vis-area">
                 <div id="graph-tooltip">
-                    <div class="tt-title" id="tt-title">Node</div>
-                    <div class="tt-desc" id="tt-desc">Description</div>
+                    <div class="tt-label" id="tt-label">Node</div>
+                    <div class="tt-detail" id="tt-detail">Details</div>
                 </div>
 
-                <!-- Layer: Graph -->
-                <div class="vis-layer active" id="lay-graph">
-                    <svg id="svg-graph" style="width:100%; height:100%; min-height: 400px;"></svg>
+                <!-- Graph -->
+                <div class="vis-layer active" id="layer-graph">
+                    <svg id="svg-graph" style="width:100%; height:100%;"></svg>
                 </div>
 
-                <!-- Layer: Pipeline -->
-                <div class="vis-layer" id="lay-pipeline">
-                    <div style="margin-bottom: 20px; color:var(--text-secondary); font-size:0.9rem; line-height: 1.5;">
-                        <strong>LangGraph v2 StateRouter:</strong> Watch the memory retrieval stack dynamically cross-encode vectors and semantic facts over a sub-100ms lifespan.
+                <!-- Pipeline -->
+                <div class="vis-layer" id="layer-pipeline">
+                    <div style="margin-bottom: 16px; color:var(--text-secondary); font-size:0.85rem; line-height:1.6;">
+                        <strong style="color:var(--text-primary);">LangGraph v2 Pipeline</strong> — Heuristic routing → parallel retrieval → cross-encoder reranking → token budget fitting.
                     </div>
                     <div id="trace-container"></div>
                 </div>
 
-                <!-- Layer: Decay -->
-                <div class="vis-layer" id="lay-decay">
+                <!-- Decay -->
+                <div class="vis-layer" id="layer-decay">
                     <canvas id="canvas-decay"></canvas>
                 </div>
 
-                <!-- Layer: Payload Viewer -->
-                <div class="vis-layer" id="lay-payload">
-                    <div class="payload-container">
-                        <div class="payload-section">
-                            <div class="ps-header">
-                                <span>LLM Input: System Prompt Payload</span>
-                                <span style="color:var(--accent-cyan)">Live Injection</span>
-                            </div>
-                            <div class="ps-body" id="code-system-prompt">Send a message to view the exact memory-augmented prompt sent to the LLM.</div>
+                <!-- Payload -->
+                <div class="vis-layer" id="layer-payload">
+                    <div class="payload-block">
+                        <div class="payload-head">
+                            <span>System Prompt (Injected)</span>
+                            <span style="color:var(--cyan);">Live</span>
                         </div>
-                        
-                        <div class="tier-grid">
-                            <div class="payload-section">
-                                <div class="ps-header">Tier 1: Working (Redis)</div>
-                                <div class="ps-body" id="code-tier-1" style="font-size:0.7rem">Empty</div>
-                            </div>
-                            <div class="payload-section">
-                                <div class="ps-header">Tier 2: Episodic (Postgres)</div>
-                                <div class="ps-body" id="code-tier-2" style="font-size:0.7rem">Empty</div>
-                            </div>
-                            <div class="payload-section">
-                                <div class="ps-header">Tier 3: Semantic (Qdrant)</div>
-                                <div class="ps-body" id="code-tier-3" style="font-size:0.7rem">Empty</div>
-                            </div>
-                            <div class="payload-section">
-                                <div class="ps-header">Tier 4: Graph (Neo4j)</div>
-                                <div class="ps-body" id="code-tier-4" style="font-size:0.7rem">Empty</div>
-                            </div>
+                        <div class="payload-body" id="payload-system">Send a message to see the memory-augmented prompt sent to the LLM.</div>
+                    </div>
+                    <div class="tier-grid">
+                        <div class="payload-block">
+                            <div class="payload-head">Tier 1: Working (Redis)</div>
+                            <div class="payload-body" id="payload-t1">Empty</div>
+                        </div>
+                        <div class="payload-block">
+                            <div class="payload-head">Tier 2: Episodic (Postgres)</div>
+                            <div class="payload-body" id="payload-t2">Empty</div>
+                        </div>
+                        <div class="payload-block">
+                            <div class="payload-head">Tier 3: Semantic (Qdrant)</div>
+                            <div class="payload-body" id="payload-t3">Empty</div>
+                        </div>
+                        <div class="payload-block">
+                            <div class="payload-head">Tier 4: Graph (Neo4j)</div>
+                            <div class="payload-body" id="payload-t4">Empty</div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- RIGHT: Memories -->
-        <section class="panel-glass">
-            <div class="panel-header">
-                System Context Window
-                <span style="font-size:0.7rem; color:var(--accent-green); font-family:var(--font-mono);" id="trim-stat">Tokens Budgeted</span>
+        <!-- RIGHT: Memory Inspector -->
+        <section class="panel">
+            <div class="panel-head">
+                <span class="panel-title">🗂️ Memory Inspector</span>
+                <span class="panel-badge" id="token-stat">Context Window</span>
             </div>
-            <div class="memory-scroller" id="memory-scroller">
-                <div style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top: 40px; line-height: 1.6;">
-                    <span style="font-size:2rem; opacity:0.3;">🗂️</span><br>
-                    Context is empty.<br>Memories retrieved to answer queries will populate here.
+            <div class="mem-feed" id="mem-feed">
+                <div class="empty-state">
+                    <div class="icon">🗂️</div>
+                    Context is empty.<br>Memories retrieved to answer queries will appear here.
                 </div>
             </div>
         </section>
@@ -845,536 +1075,579 @@
     </main>
 
     <script>
-        // ── App State ──────────────────────────────────────────────────
-        // Persist userId in localStorage so history isn't lost on refresh
+        // ================================================================
+        // APP STATE
+        // ================================================================
         let savedUserId = localStorage.getItem('neuromem_user_id');
         if (!savedUserId) {
-            savedUserId = 'sess_' + Math.random().toString(36).substring(2, 10);
+            savedUserId = 'user_' + Math.random().toString(36).substring(2, 10);
             localStorage.setItem('neuromem_user_id', savedUserId);
         }
 
-        const state = {
+        const app = {
             userId: savedUserId,
             sessionId: null,
-            isFirstMessage: true,
-            graphLoaded: false,
-            insightsShown: new Set()
+            firstMsg: true,
+            graphRendered: false,
+            insightsShown: new Set(),
         };
 
-        const API_BASE = window.location.origin;
-
-        // ── Init UI ────────────────────────────────────────────────────
-        document.getElementById('tenant-id').value = state.userId;
-
-        function changeUser() {
-            const newUser = document.getElementById('tenant-id').value.trim();
-            if (newUser && newUser !== state.userId) {
-                localStorage.setItem('neuromem_user_id', newUser);
-                state.userId = newUser;
-                state.sessionId = null; 
-                state.isFirstMessage = true;
-                
-                document.getElementById('chat-stream').innerHTML = '<div class="bubble system">Memory Sandbox switched to user: ' + newUser + '.</div>';
-                document.getElementById('stat-entities').textContent = '0';
-                document.getElementById('stat-memories').textContent = '0';
-                
-                const emptyBoxes = ['code-tier-1', 'code-tier-2', 'code-tier-3', 'code-tier-4', 'code-system-prompt'];
-                emptyBoxes.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = 'Empty';
-                });
-                
-                updateStateView();
-                fetchGraph();
-                showInsight('User Context Switched', 'You are now interacting as ' + newUser + '.', 'History is strictly isolated.');
-            }
-        }
-
-        document.getElementById('btn-start').addEventListener('click', () => {
-            document.getElementById('welcome-modal').style.opacity = '0';
-            setTimeout(() => document.getElementById('welcome-modal').remove(), 600);
-            
-            setTimeout(() => {
-                showInsight('Architectural Concept', 
-                    'NeuroMem segregates your thoughts into 5 tiers: Working, Episodic, Semantic, Graph, and Procedural.', 
-                    'Standard RAG throws everything into a single Vector DB. We use biological hierarchy.');
-            }, 1000);
+        const API = window.location.origin;
+        const getHeaders = () => ({
+            'Content-Type': 'application/json',
+            'X-API-KEY': document.getElementById('api-key').value,
+            'X-USER-ID': app.userId,
         });
 
-        // ── Tabs ───────────────────────────────────────────────────────
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.vis-layer').forEach(l => l.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(tab.dataset.target).classList.add('active');
+        // Populate UI
+        document.getElementById('tenant-id').value = app.userId;
 
-                if (tab.dataset.target === 'lay-payload') {
-                    updateStateView();
-                }
+        // ================================================================
+        // WELCOME MODAL
+        // ================================================================
+        document.getElementById('btn-enter').addEventListener('click', () => {
+            const overlay = document.getElementById('welcome-overlay');
+            overlay.classList.add('hidden');
+            setTimeout(() => overlay.remove(), 600);
+            setTimeout(() => {
+                showToast('Architecture Overview',
+                    'NeuroMem separates memory into 5 biological tiers: Working, Episodic, Semantic, Graph, and Procedural.',
+                    'Standard RAG uses a single flat vector store.');
+            }, 800);
+        });
+
+        // ================================================================
+        // TAB SWITCHING
+        // ================================================================
+        document.querySelectorAll('.vtab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.vis-layer').forEach(l => l.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.layer).classList.add('active');
+                if (tab.dataset.layer === 'layer-payload') refreshState();
             });
         });
 
-        // ── Interviewer Insights Engine ───────────────────────────────
-        function showInsight(title, body, comparison) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'insight-toast';
-            toast.innerHTML = `
-                <div class="toast-label">💡 Insight: ${title}</div>
-                <div class="toast-body">${body}</div>
-                ${comparison ? `<div class="toast-sub"><strong>RAG Comparison:</strong> ${comparison}</div>` : ''}
+        // ================================================================
+        // TOAST NOTIFICATIONS
+        // ================================================================
+        function showToast(title, body, comparison) {
+            const container = document.getElementById('toasts');
+            const el = document.createElement('div');
+            el.className = 'toast';
+            el.innerHTML = `
+                <div class="toast-title">💡 ${title}</div>
+                <div class="toast-text">${body}</div>
+                ${comparison ? `<div class="toast-compare"><strong>vs RAG:</strong> ${comparison}</div>` : ''}
             `;
-            container.appendChild(toast);
-
+            container.appendChild(el);
             setTimeout(() => {
-                toast.classList.add('outro');
-                setTimeout(() => toast.remove(), 600);
-            }, 8000);
+                el.classList.add('exit');
+                setTimeout(() => el.remove(), 400);
+            }, 7000);
         }
 
-        // ── Admin Tools ───────────────────────────────────────────────
+        // ================================================================
+        // USER SWITCHING
+        // ================================================================
+        function switchUser() {
+            const newId = document.getElementById('tenant-id').value.trim();
+            if (!newId || newId === app.userId) return;
+            localStorage.setItem('neuromem_user_id', newId);
+            app.userId = newId;
+            app.sessionId = null;
+            app.firstMsg = true;
+            app.graphRendered = false;
+            document.getElementById('chat-feed').innerHTML = '<div class="msg system-msg">Switched to user: ' + newId + '. Memory sandbox reloaded.</div>';
+            resetStats();
+            refreshState();
+            fetchGraph();
+            showToast('User Switched', 'Now interacting as <strong>' + newId + '</strong>. Memory is strictly isolated per user.');
+        }
+
+        function resetStats() {
+            document.getElementById('stat-memories').textContent = '0';
+            document.getElementById('stat-entities').textContent = '0';
+            document.getElementById('stat-latency').textContent = '—';
+            document.getElementById('stat-tiers').textContent = '0/5';
+            ['payload-t1','payload-t2','payload-t3','payload-t4','payload-system'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = 'Empty';
+            });
+        }
+
+        // ================================================================
+        // ADMIN TOOLS
+        // ================================================================
         async function skipTime(days) {
             try {
-                const res = await fetch(`${API_BASE}/admin/time-skip?days=${days}`, {
-                    method: 'POST',
-                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
+                await fetch(`${API}/admin/time-skip?days=${days}`, {
+                    method: 'POST', headers: getHeaders()
                 });
-                const data = await res.json();
-                showInsight('Time Travel Protocol', `Simulated ${days} days passing. Ebbinghaus decay scores have been recalculated for all episodic memories.`, 'Standard RAG never forgets or weights time.');
-                updateStateView();
-            } catch (e) {
-                console.error(e);
-            }
+                showToast('Time Skip', `Simulated ${days} days passing. Ebbinghaus decay scores recalculated.`, 'Standard RAG never models time-based memory decay.');
+                refreshState();
+            } catch (e) { console.error('skipTime error:', e); }
         }
 
         async function forceConsolidate() {
             try {
-                showInsight('Executing Consolidation', 'Processing LangGraph state machine to promote long-term episodic traces to permanent semantic vectors...', 'RAG lacks a biological consolidation phase.');
-                const res = await fetch(`${API_BASE}/admin/consolidate`, {
-                    method: 'POST',
-                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
-                });
+                showToast('Consolidating...', 'Running LangGraph pipeline: score → cluster → graph → contradictions → compress.');
+                const res = await fetch(`${API}/admin/consolidate`, { method: 'POST', headers: getHeaders() });
                 const data = await res.json();
-                showInsight('Consolidation Complete', `Processed ${data.episodes_processed} episodes. Wrote ${data.semantic_facts_written} semantic vectors and ${data.graph_triples_added} triples.`, '');
-                updateStateView();
+                showToast('Consolidation Complete',
+                    `Processed ${data.episodes_processed || 0} episodes → ${data.semantic_facts_written || 0} semantic facts, ${data.graph_triples_added || 0} graph triples.`);
+                refreshState();
                 fetchGraph();
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error('consolidate error:', e); }
         }
 
-        async function updateStateView() {
+        async function clearAllMemory() {
+            if (!confirm('Delete ALL memory for this user? This cannot be undone.')) return;
             try {
-                const res = await fetch(`${API_BASE}/memory/state`, {
-                    headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
-                });
+                await fetch(`${API}/memory/clear`, { method: 'DELETE', headers: getHeaders() });
+                resetStats();
+                document.getElementById('mem-feed').innerHTML = '<div class="empty-state"><div class="icon">🗑️</div>All memory cleared.</div>';
+                document.getElementById('chat-feed').innerHTML = '<div class="msg system-msg">All memory erased (GDPR wipe). Graph, episodic, semantic, and working memory deleted.</div>';
+                fetchGraph();
+                showToast('Memory Cleared', 'Full GDPR-compliant wipe across all 5 tiers.');
+            } catch (e) { console.error('clear error:', e); }
+        }
+
+        // ================================================================
+        // STATE REFRESH
+        // ================================================================
+        async function refreshState() {
+            try {
+                const res = await fetch(`${API}/memory/state`, { headers: getHeaders() });
                 const data = await res.json();
-                
-                // Only update if not already showing fresh debug data from a recent chat
-                const tierBoxes = [
-                    {id: 'code-tier-1', data: data.working},
-                    {id: 'code-tier-2', data: data.episodic},
-                    {id: 'code-tier-3', data: data.semantic},
-                    {id: 'code-tier-4', data: data.graph}
+                const tierEls = [
+                    { id: 'payload-t1', d: data.working },
+                    { id: 'payload-t2', d: data.episodic },
+                    { id: 'payload-t3', d: data.semantic },
+                    { id: 'payload-t4', d: data.graph },
                 ];
-
-                tierBoxes.forEach(box => {
-                    const el = document.getElementById(box.id);
-                    // If the box is currently showing "No ... Context" or "Empty", then update it
-                    if (el.textContent.includes('No ') || el.textContent === 'Empty' || el.textContent === '[]' || el.textContent === '') {
-                        el.textContent = box.data && box.data.length ? JSON.stringify(box.data, null, 2) : 'Empty';
-                    }
+                tierEls.forEach(({ id, d }) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = d && (Array.isArray(d) ? d.length : Object.keys(d).length) ? JSON.stringify(d, null, 2) : 'Empty';
                 });
-                
-                // Use node_count from graph data for accurate entity display
-                document.getElementById('stat-entities').textContent = data.graph_node_count || (data.graph_nodes || []).length || 0;
+                document.getElementById('stat-entities').textContent = data.graph_node_count || 0;
                 document.getElementById('stat-memories').textContent = (data.episodic || []).length + (data.semantic || []).length;
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error('refreshState error:', e); }
         }
 
-        // ── Chat Logic ────────────────────────────────────────────────
-        const input = document.getElementById('chat-input');
+        // ================================================================
+        // CHAT
+        // ================================================================
+        const chatInput = document.getElementById('chat-input');
         const btnSend = document.getElementById('btn-send');
-        const stream = document.getElementById('chat-stream');
+        const feed = document.getElementById('chat-feed');
 
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleSend();
-        });
-        btnSend.addEventListener('click', handleSend);
+        chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+        btnSend.addEventListener('click', sendMessage);
 
-        async function handleSend() {
-            const text = input.value.trim();
+        async function sendMessage() {
+            const text = chatInput.value.trim();
             if (!text) return;
-            
-            input.value = '';
+            chatInput.value = '';
             btnSend.disabled = true;
-            appendBubble(text, 'user');
-            
-            const typingId = appendTyping();
-            simulatePipelineTrace();
 
-            if (text.toLowerCase().includes('moved to') && !state.insightsShown.has('contradiction')) {
-                state.insightsShown.add('contradiction');
-                setTimeout(() => {
-                    showInsight('Contradiction Resolution', 
-                    'You mentioned moving. The background pipeline will detect this semantic conflict and invalidate your previous location via timestamp.',
-                    'Standard RAG would permanently keep both locations, hallucinating that you live in two cities.');
-                }, 2000);
+            addMsg(text, 'user');
+            const typingId = addTyping();
+            animatePipeline();
+
+            // Contextual insight
+            if (text.toLowerCase().includes('moved to') && !app.insightsShown.has('contradiction')) {
+                app.insightsShown.add('contradiction');
+                setTimeout(() => showToast('Contradiction Detection',
+                    'Moving locations triggers the contradiction detector. It will invalidate your old location via temporal timestamps.',
+                    'Standard RAG keeps both locations, causing hallucination.'), 2000);
             }
 
             try {
-                const res = await fetch(`${API_BASE}/chat`, {
+                const res = await fetch(`${API}/chat`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-KEY': document.getElementById('api-key').value,
-                        'X-USER-ID': state.userId
-                    },
+                    headers: getHeaders(),
                     body: JSON.stringify({
                         message: text,
-                        session_id: state.sessionId,
-                        include_memory_debug: true
-                    })
+                        session_id: app.sessionId,
+                        include_memory_debug: true,
+                    }),
                 });
 
-                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
                 const data = await res.json();
-                
-                document.getElementById(typingId).remove();
-                appendBubble(data.reply, 'assistant', data.memory_debug);
-                
-                state.sessionId = data.session_id;
-                document.getElementById('stat-latency').textContent = `${data.latency_ms.toFixed(0)}ms`;
+
+                removeEl(typingId);
+                addMsg(data.reply, 'assistant', data.memory_debug);
+
+                app.sessionId = data.session_id;
+                document.getElementById('stat-latency').textContent = `${data.latency_ms}ms`;
 
                 if (data.memory_debug) {
-                    renderMemoryPanel(data.memory_debug.memories);
-                    document.getElementById('stat-memories').textContent = data.memory_debug.memories_retrieved || data.memory_debug.memories.length;
-                    
+                    renderMemoryFeed(data.memory_debug.memories || []);
+                    document.getElementById('stat-memories').textContent = data.memory_debug.memories_retrieved || (data.memory_debug.memories || []).length;
+
                     if (data.memory_debug.system_prompt) {
-                        document.getElementById('code-system-prompt').textContent = data.memory_debug.system_prompt;
+                        document.getElementById('payload-system').textContent = data.memory_debug.system_prompt;
                     }
 
-                    // Populate tier boxes immediately from debug data
-                    const tierMap = {WORKING: [], EPISODIC: [], SEMANTIC: [], GRAPH: []};
-                    data.memory_debug.memories.forEach(m => {
+                    // Populate tier payloads
+                    const tiers = { WORKING: [], EPISODIC: [], SEMANTIC: [], GRAPH: [] };
+                    (data.memory_debug.memories || []).forEach(m => {
                         const t = (m.tier || '').toUpperCase();
-                        if (tierMap[t]) tierMap[t].push(m.content);
+                        if (tiers[t]) tiers[t].push(m.content);
                     });
-                    
-                    // Only update if we have debug data, otherwise let updateStateView handle it
-                    if (data.memory_debug.memories.length > 0) {
-                        document.getElementById('code-tier-1').textContent = tierMap.WORKING.length ? tierMap.WORKING.join('\n---\n') : 'No Working Context';
-                        document.getElementById('code-tier-2').textContent = tierMap.EPISODIC.length ? tierMap.EPISODIC.join('\n---\n') : 'No Episodic Context';
-                        document.getElementById('code-tier-3').textContent = tierMap.SEMANTIC.length ? tierMap.SEMANTIC.join('\n---\n') : 'No Semantic Context';
-                        document.getElementById('code-tier-4').textContent = tierMap.GRAPH.length ? tierMap.GRAPH.join('\n---\n') : 'No Graph Context';
+
+                    if ((data.memory_debug.memories || []).length > 0) {
+                        document.getElementById('payload-t1').textContent = tiers.WORKING.length ? tiers.WORKING.join('\n---\n') : 'No working context';
+                        document.getElementById('payload-t2').textContent = tiers.EPISODIC.length ? tiers.EPISODIC.join('\n---\n') : 'No episodic context';
+                        document.getElementById('payload-t3').textContent = tiers.SEMANTIC.length ? tiers.SEMANTIC.join('\n---\n') : 'No semantic context';
+                        document.getElementById('payload-t4').textContent = tiers.GRAPH.length ? tiers.GRAPH.join('\n---\n') : 'No graph context';
                     }
 
-                    const tiers = new Set(data.memory_debug.memories.map(m => (m.tier || '').toUpperCase()));
-                    if (tiers.has('GRAPH') && !state.insightsShown.has('graph_retrieval')) {
-                        state.insightsShown.add('graph_retrieval');
-                        showInsight('Multi-Hop Routing', 
-                            'The prompt was injected with Relationship context from Tier 4 (Neo4j Graph).',
-                            'Vectors are structural-blind. The graph understands entity A -> connected to -> entity B.');
+                    // Active tiers count
+                    const activeTiers = new Set((data.memory_debug.memories || []).map(m => (m.tier || '').toUpperCase())).size;
+                    document.getElementById('stat-tiers').textContent = `${activeTiers}/5`;
+
+                    // Graph insight
+                    const tierSet = new Set((data.memory_debug.memories || []).map(m => (m.tier || '').toUpperCase()));
+                    if (tierSet.has('GRAPH') && !app.insightsShown.has('graph_retrieval')) {
+                        app.insightsShown.add('graph_retrieval');
+                        showToast('Graph Retrieval Active',
+                            'Neo4j temporal graph provided entity-relationship context for this response.',
+                            'Vectors are structure-blind. Graphs understand A → connected_to → B.');
                     }
                 }
 
-                // If not in payload tab, update stats only
-                if (!document.querySelector('.tab[data-target="lay-payload"]').classList.contains('active')) {
-                    // Update stats silently
-                    fetch(`${API_BASE}/memory/state`, {
-                        headers: { 'X-API-KEY': document.getElementById('api-key').value, 'X-USER-ID': state.userId }
-                    }).then(res => res.json()).then(stateData => {
-                        document.getElementById('stat-entities').textContent = stateData.graph_node_count || (stateData.graph_nodes || []).length || 0;
-                    });
-                }
-
-                // Wait 2.0s for the FastAPI BackgroundTask and LLM to finish extraction
-                setTimeout(() => {
-                    fetchGraph();
-                    updateStateView();
-                }, 2000);
+                // Delayed refresh for background pipeline
+                setTimeout(() => { fetchGraph(); refreshState(); }, 2500);
 
             } catch (e) {
-                document.getElementById(typingId).remove();
-                appendBubble('Error connecting to backend: ' + e.message, 'system');
+                removeEl(typingId);
+                addMsg('Connection error: ' + e.message, 'system-msg');
             } finally {
                 btnSend.disabled = false;
-                input.focus();
+                chatInput.focus();
             }
         }
 
-        let bubbleCount = 0;
-        function appendBubble(text, role, memoryDebug=null) {
-            const div = document.createElement('div');
-            div.className = `bubble ${role}`;
-            
-            let html = text;
-            if (memoryDebug && memoryDebug.memories.length > 0) {
-                const tags = Array.from(new Set(memoryDebug.memories.map(m => (m.tier || '').toUpperCase()))).map(t => `<div class="citation-badge">Used: Tier-${t}</div>`).join('');
-                html += `<div class="memory-citations">${tags}</div>`;
+        function addMsg(text, role, debug) {
+            const el = document.createElement('div');
+            el.className = `msg ${role}`;
+            let html = escapeHtml(text);
+
+            if (debug && (debug.memories || []).length > 0) {
+                const tierTags = [...new Set((debug.memories || []).map(m => (m.tier || '').toLowerCase()))]
+                    .map(t => `<div class="cite-tag ${t}">${t.toUpperCase()}</div>`).join('');
+                html += `<div class="msg-citations">${tierTags}</div>`;
             }
-            
-            div.innerHTML = html;
-            stream.appendChild(div);
-            stream.scrollTop = stream.scrollHeight;
+
+            el.innerHTML = html;
+            feed.appendChild(el);
+            feed.scrollTop = feed.scrollHeight;
         }
 
-        function appendTyping() {
-            const id = 'typing-' + bubbleCount++;
+        function escapeHtml(str) {
             const div = document.createElement('div');
-            div.className = 'bubble assistant';
-            div.id = id;
-            div.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
-            stream.appendChild(div);
-            stream.scrollTop = stream.scrollHeight;
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        let typingCounter = 0;
+        function addTyping() {
+            const id = 'typing-' + (typingCounter++);
+            const el = document.createElement('div');
+            el.className = 'msg assistant';
+            el.id = id;
+            el.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+            feed.appendChild(el);
+            feed.scrollTop = feed.scrollHeight;
             return id;
         }
 
+        function removeEl(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
 
-        // ── Memory Panel Rendering ─────────────────────────────────────
-        function renderMemoryPanel(memories) {
-            const scroller = document.getElementById('memory-scroller');
-            scroller.innerHTML = '';
-            
-            if (memories.length === 0) {
-                scroller.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top: 40px;">No exact memories matched. Relying on baseline model weights.</div>`;
+        // ================================================================
+        // MEMORY FEED
+        // ================================================================
+        function renderMemoryFeed(memories) {
+            const container = document.getElementById('mem-feed');
+            container.innerHTML = '';
+
+            if (!memories || memories.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="icon">🧠</div>No memories matched this query.<br>The model will rely on its base weights.</div>';
                 return;
             }
 
-            memories.forEach(mem => {
-                const tier = (mem.tier || '').toLowerCase(); // Ensure lowercase for CSS classes
-                const div = document.createElement('div');
-                div.className = `mem-card tier-${tier}`;
-                div.innerHTML = `
-                    <div class="mc-top">
-                        <span class="mc-tier">${tier.toUpperCase()}</span>
-                        <span style="opacity:0.6;">Score: ${mem.relevance.toFixed(3)}</span>
+            memories.forEach(m => {
+                const tier = (m.tier || '').toLowerCase();
+                const score = typeof m.relevance === 'number' ? m.relevance.toFixed(3) : '—';
+                const el = document.createElement('div');
+                el.className = `mem-item t-${tier}`;
+                el.innerHTML = `
+                    <div class="mem-meta">
+                        <span class="mem-tier-label">${tier.toUpperCase()}</span>
+                        <span class="mem-score">Score: ${score}</span>
                     </div>
-                    <div class="mc-text">${mem.content}</div>
+                    <div class="mem-content">${escapeHtml(m.content || '')}</div>
                 `;
-                scroller.appendChild(div);
+                container.appendChild(el);
             });
         }
 
-
-        // ── Pipeline Trace (Interactive Résumé Explanation) ─────────────
-        const pipelineSteps = [
-            { id: 1, name: "Heuristic Router", latency: "0.2ms", desc: "Skipped an 800ms LLM routing call by using explicit semantic keyword triggers to determine which of the 4 Memory Tiers needed to be parallel-queried." },
-            { id: 2, name: "Parallel Retrieval", latency: "25ms", desc: "Fired simultaneous async requests to Redis (Working), Postgres (Episodic), Qdrant (Semantic vectors), and Neo4j (Graph logic). RAG just uses one." },
-            { id: 3, name: "Cross-Encoder (ms-marco)", latency: "42ms", desc: "Flattened the combined results and reranked them rigorously to place perfectly matching intent above generalized semantic matches." },
-            { id: 4, name: "Token Budget Fit", latency: "1ms", desc: "Enforced the 2000 token limit greedily. Anything at the bottom of the cross-encoder list gets completely dropped to preserve LLM context economics." }
+        // ================================================================
+        // PIPELINE TRACE
+        // ================================================================
+        const PIPELINE_STEPS = [
+            { name: 'Heuristic Router', time: '0.2ms', detail: 'Keyword-based tier selection replaces an 800ms LLM routing call. Determines which of the 4 stores to query in parallel.' },
+            { name: 'Parallel Retrieval', time: '25ms', detail: 'Fires async requests to Redis (Working), PostgreSQL (Episodic), Qdrant (Semantic), and Neo4j (Graph) simultaneously.' },
+            { name: 'Cross-Encoder Reranking', time: '42ms', detail: 'ms-marco-MiniLM-L-6-v2 re-ranks all candidate memories by semantic relevance to the query.' },
+            { name: 'Token Budget Fitting', time: '1ms', detail: 'Greedy selection algorithm fits top-ranked memories into the 2000-token context budget.' },
         ];
 
         function initPipeline() {
-            const cont = document.getElementById('trace-container');
-            pipelineSteps.forEach(step => {
-                const t = document.createElement('div');
-                t.className = 'trace-item';
-                t.innerHTML = `
-                    <div class="trace-header">
-                        <div class="trace-icon">⚡</div>
-                        <div class="trace-title">${step.name}</div>
-                        <div class="trace-latency"></div>
+            const container = document.getElementById('trace-container');
+            PIPELINE_STEPS.forEach(step => {
+                const el = document.createElement('div');
+                el.className = 'trace-step';
+                el.innerHTML = `
+                    <div class="trace-top">
+                        <div class="trace-dot"></div>
+                        <div class="trace-name">${step.name}</div>
+                        <div class="trace-time"></div>
                     </div>
-                    <div class="trace-body">${step.desc}</div>
+                    <div class="trace-detail">${step.detail}</div>
                 `;
-                
-                t.addEventListener('click', () => {
-                    t.classList.toggle('expanded');
-                });
-                
-                cont.appendChild(t);
+                el.addEventListener('click', () => el.classList.toggle('open'));
+                container.appendChild(el);
             });
         }
         initPipeline();
 
-        function simulatePipelineTrace() {
-            const items = document.querySelectorAll('.trace-item');
-            items.forEach(i => {
-                i.classList.remove('active-glow');
-                i.querySelector('.trace-latency').textContent = 'running...';
+        function animatePipeline() {
+            const steps = document.querySelectorAll('.trace-step');
+            steps.forEach(s => {
+                s.classList.remove('glow', 'done');
+                s.querySelector('.trace-time').textContent = '…';
             });
-            
-            let i = 0;
+
+            let idx = 0;
             const iv = setInterval(() => {
-                if (i > 0) items[i-1].classList.remove('active-glow');
-                if (i < items.length) {
-                    items[i].classList.add('active-glow');
-                    items[i].querySelector('.trace-latency').textContent = pipelineSteps[i].latency;
-                    i++;
+                if (idx > 0) {
+                    steps[idx - 1].classList.remove('glow');
+                    steps[idx - 1].classList.add('done');
+                }
+                if (idx < steps.length) {
+                    steps[idx].classList.add('glow');
+                    steps[idx].querySelector('.trace-time').textContent = PIPELINE_STEPS[idx].time;
+                    idx++;
                 } else {
                     clearInterval(iv);
                 }
-            }, 300);
+            }, 350);
         }
 
-        // ── Interactive Knowledge Graph (D3.js) ────────────────────────
+        // ================================================================
+        // KNOWLEDGE GRAPH (D3.js)
+        // ================================================================
         async function fetchGraph() {
             try {
-                const res = await fetch(`${API_BASE}/graph?include_invalidated=true`, {
-                    headers: { 
-                        'X-API-KEY': document.getElementById('api-key').value,
-                        'X-USER-ID': state.userId
-                    }
-                });
-                if(!res.ok) return;
+                const res = await fetch(`${API}/graph?include_invalidated=true`, { headers: getHeaders() });
+                if (!res.ok) return;
                 const data = await res.json();
-                
-                if (data.nodes.length > 0 && !state.graphLoaded) {
-                    state.graphLoaded = true;
-                    showInsight('Spatial Graph Rendered', 
-                        'Visual representation active. The background task extracted Entity-Relationship triples and appended them to Neo4j automatically.',
-                        'Standard systems lack spatial relationship awareness completely.');
+                document.getElementById('stat-entities').textContent = (data.nodes || []).length;
+
+                if ((data.nodes || []).length > 0 && !app.graphRendered) {
+                    app.graphRendered = true;
+                    showToast('Knowledge Graph Active',
+                        'Entity-relationship triples have been extracted and stored in Neo4j.',
+                        'Standard systems lack spatial relationship awareness.');
                 }
-                
-                document.getElementById('stat-entities').textContent = data.nodes.length || 0;
 
                 renderGraph(data);
-            } catch(e) {}
+            } catch (e) { /* silent */ }
         }
 
         function renderGraph(data) {
             const svg = d3.select('#svg-graph');
             svg.selectAll('*').remove();
-            
+
             if (!data.nodes || data.nodes.length === 0) {
-                svg.append('text').attr('x','50%').attr('y','50%').attr('text-anchor','middle').attr('fill','#656580').text('Graph evaluates and grows after each background cycle.');
+                svg.append('text')
+                    .attr('x', '50%').attr('y', '50%')
+                    .attr('text-anchor', 'middle')
+                    .attr('fill', 'var(--text-dim)')
+                    .attr('font-size', '13px')
+                    .attr('font-family', 'var(--font-body)')
+                    .text('Knowledge graph will populate after the first background cycle.');
                 return;
             }
 
-            const bounds = svg.node().parentElement.getBoundingClientRect();
-            const width = bounds.width || 500;
-            const height = bounds.height || 500;
-            
-            svg.attr('width', width).attr('height', height);
+            const container = svg.node().parentElement;
+            const rect = container.getBoundingClientRect();
+            const W = rect.width || 500;
+            const H = rect.height || 500;
+            svg.attr('width', W).attr('height', H);
 
-            const nodes = data.nodes.map(n => ({...n}));
+            const nodes = data.nodes.map(n => ({ ...n }));
             const edges = data.edges.map(e => ({
                 source: nodes.find(n => n.id === e.subject) || e.subject,
                 target: nodes.find(n => n.id === e.object) || e.object,
-                label: e.predicate.replace(/_/g, ' '),
-                active: e.is_active
+                label: (e.predicate || '').replace(/_/g, ' '),
+                active: e.is_active,
             })).filter(e => typeof e.source === 'object' && typeof e.target === 'object');
 
             const sim = d3.forceSimulation(nodes)
-                .force('link', d3.forceLink(edges).id(d=>d.id).distance(150))
-                .force('charge', d3.forceManyBody().strength(-400))
-                .force('center', d3.forceCenter(width/2, height/2))
-                .force('collide', d3.forceCollide().radius(50));
+                .force('link', d3.forceLink(edges).id(d => d.id).distance(140))
+                .force('charge', d3.forceManyBody().strength(-350))
+                .force('center', d3.forceCenter(W / 2, H / 2))
+                .force('collide', d3.forceCollide().radius(45));
 
             const tt = document.getElementById('graph-tooltip');
-            
-            // Edges
-            const linkGroup = svg.append('g').selectAll('g').data(edges).enter().append('g');
-            
-            const link = linkGroup.append('line')
-                .attr('stroke', d => d.active ? 'var(--accent-purple)' : '#444')
-                .attr('stroke-width', d => d.active ? 2 : 1)
-                .attr('stroke-dasharray', d => d.active ? 'none' : '4,4')
-                .attr('opacity', 0.8);
 
-            // Invisible wide line for hover 
-            linkGroup.append('line')
-                .attr('stroke-width', 15)
-                .attr('stroke', 'transparent')
-                .on('mouseenter', (e, d) => {
+            // Edges
+            const linkG = svg.append('g').selectAll('g').data(edges).enter().append('g');
+            linkG.append('line')
+                .attr('stroke', d => d.active ? 'var(--purple)' : '#333')
+                .attr('stroke-width', d => d.active ? 1.8 : 1)
+                .attr('stroke-dasharray', d => d.active ? 'none' : '4,4')
+                .attr('opacity', 0.75);
+
+            // Invisible hover target for edges
+            linkG.append('line')
+                .attr('stroke-width', 14).attr('stroke', 'transparent')
+                .on('mouseenter', (ev, d) => {
                     tt.style.opacity = 1;
-                    tt.style.left = e.pageX + 10 + 'px';
-                    tt.style.top = e.pageY - 10 + 'px';
-                    document.getElementById('tt-title').textContent = 'Graph Edge (Relationship)';
-                    document.getElementById('tt-desc').textContent = `${d.source.id} → [${d.label.toUpperCase()}] → ${d.target.id}. Status: ${d.active ? 'Valid' : 'Invalidated!'}`;
+                    tt.style.left = ev.pageX + 12 + 'px';
+                    tt.style.top = ev.pageY - 12 + 'px';
+                    document.getElementById('tt-label').textContent = d.label.toUpperCase();
+                    document.getElementById('tt-detail').textContent = `${d.source.id} → ${d.target.id} | ${d.active ? 'Active' : 'Invalidated'}`;
                 })
                 .on('mouseleave', () => tt.style.opacity = 0);
+
+            // Edge labels
+            const edgeLabels = svg.append('g').selectAll('text').data(edges).enter().append('text')
+                .attr('fill', 'var(--text-muted)')
+                .attr('font-size', '9px')
+                .attr('font-family', 'var(--font-mono)')
+                .attr('text-anchor', 'middle')
+                .text(d => d.label.toUpperCase());
 
             // Nodes
             const node = svg.append('g').selectAll('g').data(nodes).enter().append('g')
                 .call(d3.drag()
-                    .on('start', (e,d) => { if(!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-                    .on('drag', (e,d) => { d.fx = e.x; d.fy = e.y; })
-                    .on('end', (e,d) => { if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+                    .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+                    .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+                    .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
                 );
 
             node.append('circle')
-                .attr('r', d => d.id === 'User' ? 24 : 18)
-                .attr('fill', d => d.id === 'User' ? 'var(--accent-cyan)' : 'var(--bg-glass)')
-                .attr('stroke', d => d.id === 'User' ? '#fff' : 'var(--accent-cyan)')
-                .attr('stroke-width', 2)
-                .on('mouseenter', (e,d) => {
+                .attr('r', d => d.id === 'User' ? 22 : 16)
+                .attr('fill', d => d.id === 'User' ? 'var(--cyan)' : 'var(--bg-elevated)')
+                .attr('stroke', d => d.id === 'User' ? 'white' : 'var(--cyan)')
+                .attr('stroke-width', d => d.id === 'User' ? 2.5 : 1.5)
+                .style('cursor', 'grab')
+                .on('mouseenter', (ev, d) => {
                     tt.style.opacity = 1;
-                    tt.style.left = e.pageX + 10 + 'px';
-                    tt.style.top = e.pageY - 10 + 'px';
-                    document.getElementById('tt-title').textContent = `Node: ${d.id}`;
-                    document.getElementById('tt-desc').textContent = `A standalone spatial entity mapped into the graph schema. Hover over connecting lines to see structural logic limits.`;
+                    tt.style.left = ev.pageX + 12 + 'px';
+                    tt.style.top = ev.pageY - 12 + 'px';
+                    document.getElementById('tt-label').textContent = d.id;
+                    document.getElementById('tt-detail').textContent = 'Entity node in the temporal knowledge graph. Drag to reposition.';
                 })
-                .on('mouseleave', () => { tt.style.opacity = 0; });
+                .on('mouseleave', () => tt.style.opacity = 0);
 
             node.append('text')
-                .attr('dy', d => d.id==='User' ? 38 : 32)
+                .attr('dy', d => d.id === 'User' ? 36 : 28)
                 .attr('text-anchor', 'middle')
                 .attr('fill', 'var(--text-primary)')
-                .attr('font-size', '12px')
+                .attr('font-size', '11px')
                 .attr('font-weight', '500')
+                .attr('font-family', 'var(--font-body)')
                 .text(d => d.label || d.id);
 
-            // Edge Labels
-            const edgeLabels = svg.append('g').selectAll('text').data(edges).enter().append('text')
-                .attr('fill', '#A0A0BA').attr('font-size', '10px').attr('text-anchor', 'middle')
-                .text(d => d.label.toUpperCase());
-
             sim.on('tick', () => {
-                linkGroup.selectAll('line').attr('x1', d=>d.source.x).attr('y1', d=>d.source.y).attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
-                node.attr('transform', d=>`translate(${d.x},${d.y})`);
-                edgeLabels.attr('x', d=>(d.source.x+d.target.x)/2).attr('y', d=>(d.source.y+d.target.y)/2 - 5);
+                linkG.selectAll('line')
+                    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+                node.attr('transform', d => `translate(${d.x},${d.y})`);
+                edgeLabels
+                    .attr('x', d => (d.source.x + d.target.x) / 2)
+                    .attr('y', d => (d.source.y + d.target.y) / 2 - 6);
             });
         }
 
-        // ── Render Static Decay Chart ────────────────────────────────
-        // Formula: R = e^(-t / S), where S = 14 * (importance + 0.1) * (1 + 0.5 * recall_count)
-        // This matches the actual SQL formula in episodic/store.py
-        const ctx = document.getElementById('canvas-decay').getContext('2d');
-        const days = Array.from({length: 30}, (_,i)=>i);
-        
-        // S values from actual formula: S = 14 * (imp + 0.1) * (1 + 0.5 * recalls)
-        const S_high_imp_recalled = 14 * (0.9 + 0.1) * (1 + 0.5 * 5);  // imp=0.9, 5 recalls → S=49
-        const S_mid_imp_once     = 14 * (0.5 + 0.1) * (1 + 0.5 * 1);   // imp=0.5, 1 recall  → S=12.6
-        const S_low_imp_never    = 14 * (0.2 + 0.1) * (1 + 0.5 * 0);   // imp=0.2, 0 recalls → S=4.2
-        const S_trivial          = 14 * (0.0 + 0.1) * (1 + 0.5 * 0);   // imp=0.0, 0 recalls → S=1.4
+        // ================================================================
+        // DECAY CHART
+        // ================================================================
+        const decayCtx = document.getElementById('canvas-decay').getContext('2d');
+        const dayRange = Array.from({ length: 31 }, (_, i) => i);
 
-        new Chart(ctx, {
+        const S1 = 14 * (0.9 + 0.1) * (1 + 0.5 * 5);  // High importance + recalled
+        const S2 = 14 * (0.5 + 0.1) * (1 + 0.5 * 1);   // Medium + 1 recall
+        const S3 = 14 * (0.2 + 0.1) * (1 + 0.5 * 0);   // Low importance
+        const S4 = 14 * (0.0 + 0.1) * (1 + 0.5 * 0);   // Trivial
+
+        new Chart(decayCtx, {
             type: 'line',
             data: {
-                labels: days,
+                labels: dayRange,
                 datasets: [
-                    { label: `Critical + Recalled (S=${S_high_imp_recalled.toFixed(1)})`, data: days.map(t => Math.exp(-t/S_high_imp_recalled)), borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.08)', fill: true, tension: 0.4, borderWidth: 2.5 },
-                    { label: `Medium + 1 Recall (S=${S_mid_imp_once.toFixed(1)})`,  data: days.map(t => Math.exp(-t/S_mid_imp_once)),  borderColor: '#B200FF', backgroundColor: 'rgba(178,0,255,0.08)', fill: true, tension: 0.4, borderWidth: 2 },
-                    { label: `Low Importance (S=${S_low_imp_never.toFixed(1)})`,     data: days.map(t => Math.exp(-t/S_low_imp_never)), borderColor: '#FFAB00', backgroundColor: 'rgba(255,171,0,0.08)', fill: true, tension: 0.4, borderWidth: 2 },
-                    { label: `Trivial Mention (S=${S_trivial.toFixed(1)})`,           data: days.map(t => Math.exp(-t/S_trivial)),       borderColor: '#F85149', backgroundColor: 'rgba(248,81,73,0.08)', fill: true, tension: 0.4, borderWidth: 1.5, borderDash: [5,3] },
-                ]
+                    { label: `High + 5 recalls (S=${S1.toFixed(0)})`, data: dayRange.map(t => Math.exp(-t / S1)), borderColor: '#00D8FF', backgroundColor: 'rgba(0,216,255,0.06)', fill: true, tension: 0.4, borderWidth: 2.5, pointRadius: 0 },
+                    { label: `Medium + 1 recall (S=${S2.toFixed(0)})`, data: dayRange.map(t => Math.exp(-t / S2)), borderColor: '#A855F7', backgroundColor: 'rgba(168,85,247,0.06)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                    { label: `Low importance (S=${S3.toFixed(0)})`, data: dayRange.map(t => Math.exp(-t / S3)), borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.06)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+                    { label: `Trivial (S=${S4.toFixed(0)})`, data: dayRange.map(t => Math.exp(-t / S4)), borderColor: '#F43F5E', backgroundColor: 'rgba(244,63,94,0.06)', fill: true, tension: 0.4, borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0 },
+                ],
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    legend: { labels: { color: '#A0A0BA', font: {family: 'Outfit', size: 11} } },
-                    title: { display: true, text: 'Ebbinghaus Decay: R = e^(-t / S)  |  S = 14 × (importance + 0.1) × (1 + 0.5 × recalls)', color: '#fff', font: {size: 13} },
+                    legend: {
+                        labels: {
+                            color: 'var(--text-secondary)',
+                            font: { family: 'Outfit', size: 11 },
+                            padding: 16,
+                            usePointStyle: true,
+                            pointStyleWidth: 8,
+                        },
+                    },
+                    title: {
+                        display: true,
+                        text: 'Ebbinghaus Decay: R = e^(−t / S)  |  S = 14 × (imp + 0.1) × (1 + 0.5 × recalls)',
+                        color: '#F0F0F8',
+                        font: { family: 'Outfit', size: 13, weight: '600' },
+                        padding: { bottom: 16 },
+                    },
                     tooltip: {
+                        backgroundColor: 'rgba(12,12,22,0.95)',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        titleFont: { family: 'Outfit' },
+                        bodyFont: { family: 'JetBrains Mono', size: 11 },
                         callbacks: {
-                            label: function(ctx) {
-                                return `${ctx.dataset.label}: ${(ctx.parsed.y * 100).toFixed(1)}% retention`;
-                            }
-                        }
-                    }
+                            label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y * 100).toFixed(1)}% retention`,
+                        },
+                    },
                 },
                 scales: {
-                    x: { title: {display: true, text: 'Days Since Creation', color: '#656580'}, ticks: {color: '#656580'}, grid: {color: 'rgba(255,255,255,0.05)'} },
-                    y: { min: 0, max: 1, title: {display: true, text: 'Retention Score', color: '#656580'}, ticks: {color: '#656580', callback: v => (v*100)+'%'}, grid: {color: 'rgba(255,255,255,0.05)'} }
-                }
-            }
+                    x: {
+                        title: { display: true, text: 'Days Since Creation', color: '#5C5C72', font: { family: 'Inter' } },
+                        ticks: { color: '#5C5C72' },
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                    },
+                    y: {
+                        min: 0, max: 1,
+                        title: { display: true, text: 'Retention Score', color: '#5C5C72', font: { family: 'Inter' } },
+                        ticks: { color: '#5C5C72', callback: v => (v * 100) + '%' },
+                        grid: { color: 'rgba(255,255,255,0.03)' },
+                    },
+                },
+            },
         });
-
     </script>
 </body>
 </html>

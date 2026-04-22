@@ -44,17 +44,17 @@ def get_token_budget() -> TokenBudgetManager:
 def get_surprise_scorer() -> SurpriseScorer:
     global _surprise_scorer
     if _surprise_scorer is None:
-        from app.memory.semantic.embedder import Embedder
-        _surprise_scorer = SurpriseScorer(embedder=Embedder())
+        from app.memory.semantic.embedder import get_embedder
+        _surprise_scorer = SurpriseScorer(embedder=get_embedder())
     return _surprise_scorer
 
 
 def get_contradiction_detector() -> ContradictionDetector:
     global _contradiction_detector
     if _contradiction_detector is None:
-        from app.memory.semantic.embedder import Embedder
+        from app.memory.semantic.embedder import get_embedder
         _contradiction_detector = ContradictionDetector(
-            embedder=Embedder(),
+            embedder=get_embedder(),
             llm_client=get_llm_client(),
         )
     return _contradiction_detector
@@ -81,9 +81,9 @@ async def get_episodic_store():
 async def get_semantic_store():
     from app.db.qdrant_client import get_qdrant_client
     from app.memory.semantic.store import SemanticMemoryStore
-    from app.memory.semantic.embedder import Embedder
+    from app.memory.semantic.embedder import get_embedder
     qdrant = get_qdrant_client()
-    return SemanticMemoryStore(client=qdrant, embedder=Embedder())
+    return SemanticMemoryStore(client=qdrant, embedder=get_embedder())
 
 
 async def get_knowledge_graph():

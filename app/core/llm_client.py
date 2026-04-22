@@ -52,19 +52,13 @@ class LLMClient:
         max_tokens: Optional[int] = None,
     ) -> ChatOpenAI:
         """Get a ChatOpenAI instance with optional overrides."""
-        kwargs = {}
-        if temperature is not None:
-            kwargs["temperature"] = temperature
-        if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
-
-        if kwargs:
-            return self.llm.bind(**kwargs) if not kwargs.get("temperature") else ChatOpenAI(
+        if temperature is not None or max_tokens is not None:
+            return ChatOpenAI(
                 base_url=settings.llm_base_url,
                 api_key=settings.llm_api_key,
                 model=settings.llm_model,
                 temperature=temperature if temperature is not None else settings.llm_temperature,
-                max_tokens=max_tokens or settings.llm_max_tokens,
+                max_tokens=max_tokens if max_tokens is not None else settings.llm_max_tokens,
             )
         return self.llm
 

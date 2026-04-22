@@ -15,6 +15,7 @@ from qdrant_client.http.models import (
     FieldCondition,
     Filter,
     FilterSelector,
+    MatchAny,
     MatchValue,
     PointStruct,
     VectorParams,
@@ -132,11 +133,10 @@ class SemanticMemoryStore:
             FieldCondition(key="user_id", match=MatchValue(value=user_id))
         ]
         if memory_types:
-            # Filter by first memory type (simplified)
             must_conditions.append(
                 FieldCondition(
                     key="memory_type",
-                    match=MatchValue(value=memory_types[0].value),
+                    match=MatchAny(any=[t.value for t in memory_types]),
                 )
             )
 

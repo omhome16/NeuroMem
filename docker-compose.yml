@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: neuromem
       POSTGRES_DB: neuromem
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./app/db/migrations:/docker-entrypoint-initdb.d
@@ -42,6 +42,7 @@ services:
     image: neo4j:5.18-community
     ports:
       - "8687:7687"
+      - "7474:7474"
     environment:
       NEO4J_AUTH: neo4j/neuromem123
       NEO4J_PLUGINS: '["apoc"]'

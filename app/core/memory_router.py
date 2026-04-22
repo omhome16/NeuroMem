@@ -35,26 +35,6 @@ from app.models.memory import MemoryTier, MemoryType, RetrievedMemory
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-ROUTER_SYSTEM_PROMPT = """You are a memory routing engine for an AI assistant.
-Given the user's query, decide which memory tiers to search.
-
-TIERS:
-- working: Recent conversation context (last few turns). Use for follow-up questions, references to "it", "that", "this".
-- episodic: User facts from recent sessions (last 30 days). Use for personal info, preferences, recent events.
-- semantic: Long-term user profile (permanent). Use for deep personal facts, long-standing preferences, relationships.
-- graph: Entity-relationship knowledge graph. Use for questions about relationships, specific people, organizations, locations.
-
-Return ONLY JSON (no markdown fences):
-{
-  "tiers": ["working", "episodic", "semantic", "graph"],
-  "memory_types": ["fact", "preference", "event", "relationship"],
-  "query_entities": ["User", "Sarah", "Google"],
-  "reasoning": "brief explanation"
-}
-
-Select only the tiers necessary. Also extract any named entities relevant to the query.
-For simple chit-chat, return {"tiers": [], "memory_types": [], "query_entities": [], "reasoning": "no memory needed"}."""
-
 
 # ── LangGraph State Schema ───────────────────────────────────────────
 
@@ -116,7 +96,7 @@ class MemoryRouter:
         self.token_budget = token_budget
         self._graph = self._build_graph()
 
-    def _build_graph(self) -> StateGraph:
+    def _build_graph(self):
         """Build the LangGraph v2 StateGraph."""
         graph = StateGraph(RouterState)
 

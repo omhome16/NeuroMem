@@ -51,6 +51,9 @@ class KnowledgeGraph:
         For each triple, checks for contradictions and invalidates
         old facts if necessary (temporal provenance).
         """
+        # Always use a consistent timestamp — fallback to Python UTC if not provided
+        if not now_iso:
+            now_iso = datetime.now(timezone.utc).isoformat()
         added = 0
         async with self.driver.session() as session:
             for triple in triples:
@@ -103,12 +106,13 @@ class KnowledgeGraph:
 
     async def _invalidate_relation(self, session, rel_id: str, now_iso: Optional[str] = None) -> None:
         """Set valid_to on an existing relation (temporal invalidation)."""
-        now_expr = "datetime($now_iso)" if now_iso else "datetime()"
+        if not now_iso:
+            now_iso = datetime.now(timezone.utc).isoformat()
         await session.run(
-            f"""
+            """
             MATCH ()-[r:RELATION]->()
             WHERE elementId(r) = $rel_id
-            SET r.valid_to = {now_expr}
+            SET r.valid_to = datetime($now_iso)
             """,
             rel_id=rel_id,
             now_iso=now_iso,
@@ -123,20 +127,21 @@ class KnowledgeGraph:
         now_iso: Optional[str] = None,
     ) -> None:
         """Create a new entity-relationship triple."""
-        now_expr = "datetime($now_iso)" if now_iso else "datetime()"
+        if not now_iso:
+            now_iso = datetime.now(timezone.utc).isoformat()
         await session.run(
-            f"""
-            MERGE (s:Entity {{name: $subject, user_id: $user_id}})
-            ON CREATE SET s.entity_type = 'unknown', s.created_at = {now_expr}
-            MERGE (o:Entity {{name: $object, user_id: $user_id}})
-            ON CREATE SET o.entity_type = 'unknown', o.created_at = {now_expr}
-            CREATE (s)-[:RELATION {{
+            """
+            MERGE (s:Entity {name: $subject, user_id: $user_id})
+            ON CREATE SET s.entity_type = 'unknown', s.created_at = datetime($now_iso)
+            MERGE (o:Entity {name: $object, user_id: $user_id})
+            ON CREATE SET o.entity_type = 'unknown', o.created_at = datetime($now_iso)
+            CREATE (s)-[:RELATION {
                 predicate: $predicate,
-                valid_from: {now_expr},
+                valid_from: datetime($now_iso),
                 valid_to: null,
                 confidence: $confidence,
                 source_memory_id: $source_id
-            }}]->(o)
+            }]->(o)
             """,
             subject=triple.subject,
             object=triple.object,

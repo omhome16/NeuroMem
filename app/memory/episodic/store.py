@@ -190,6 +190,7 @@ class EpisodicMemoryStore:
         )
 
         results = []
+        recall_updates = []  # Collect (id, importance) for batch update
         for row in rows:
             results.append(
                 RetrievedMemory(
@@ -201,8 +202,22 @@ class EpisodicMemoryStore:
                     created_at=row["created_at"],
                 )
             )
-            # Increment recall count (spaced repetition reinforcement)
-            await self._increment_recall(row["id"], float(row["importance"]))
+            recall_updates.append((row["id"], float(row["importance"])))
+
+        # Batch increment recall counts (single query instead of N sequential UPDATEs)
+        if recall_updates:
+            now = sim_now or datetime.now(timezone.utc)
+            recall_ids = [r[0] for r in recall_updates]
+            await self.pg.execute(
+                """
+                UPDATE episodic_memories
+                SET recall_count = recall_count + 1,
+                    last_recalled = $2,
+                    importance = LEAST(1.0, importance * 1.10)
+                WHERE id = ANY($1::uuid[])
+                """,
+                recall_ids, now,
+            )
 
         # Cache results
         await self.redis.setex(
@@ -358,27 +373,28 @@ class EpisodicMemoryStore:
     # ── v2 Helpers (Surprise Gating + Contradiction Detection) ───────
 
     async def get_recent_contents(
-        self, user_id: str, limit: int = 50
+        self, user_id: str, limit: int = 50, sim_now: Optional[datetime] = None
     ) -> List[str]:
         """
         Get recent memory content strings for surprise scoring.
         Used by SurpriseScorer to compute novelty against existing state.
         """
+        now = sim_now or datetime.now(timezone.utc)
         rows = await self.pg.fetch(
             """
             SELECT content FROM episodic_memories
             WHERE user_id = $1
               AND decay_score > 0.1
-              AND expires_at > NOW()
+              AND expires_at > $3
             ORDER BY created_at DESC
             LIMIT $2
             """,
-            user_id, limit,
+            user_id, limit, now,
         )
         return [row["content"] for row in rows]
 
     async def get_recent_contents_with_ids(
-        self, user_id: str, limit: int = 50
+        self, user_id: str, limit: int = 50, sim_now: Optional[datetime] = None
     ) -> tuple:
         """
         Get recent memory content AND IDs for contradiction detection.
@@ -390,16 +406,17 @@ class EpisodicMemoryStore:
         the episodic store WHICH specific memory to invalidate.
         Without IDs, contradictions are detected but never resolved.
         """
+        now = sim_now or datetime.now(timezone.utc)
         rows = await self.pg.fetch(
             """
             SELECT id, content FROM episodic_memories
             WHERE user_id = $1
               AND decay_score > 0.1
-              AND expires_at > NOW()
+              AND expires_at > $3
             ORDER BY created_at DESC
             LIMIT $2
             """,
-            user_id, limit,
+            user_id, limit, now,
         )
         contents = [row["content"] for row in rows]
         ids = [str(row["id"]) for row in rows]

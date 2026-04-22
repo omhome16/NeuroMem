@@ -6,10 +6,13 @@ Initializes all database connections (PostgreSQL, Redis, Qdrant, Neo4j)
 and mounts API routes.
 """
 import logging
+import os
+import traceback
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -31,7 +34,7 @@ async def lifespan(app: FastAPI):
     # Initialize database connections
     from app.db.postgres import create_pg_pool, close_pg_pool
     from app.db.redis_client import create_redis_pool, close_redis_pool
-    from app.db.qdrant_client import init_qdrant
+    from app.db.qdrant_client import init_qdrant, close_qdrant
     from app.db.neo4j_client import init_neo4j, close_neo4j
 
     await create_pg_pool()
@@ -66,6 +69,10 @@ async def lifespan(app: FastAPI):
     await close_pg_pool()
     await close_redis_pool()
     try:
+        await close_qdrant()
+    except Exception:
+        pass
+    try:
         await close_neo4j()
     except Exception:
         pass
@@ -88,26 +95,24 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Static files (dashboard) ────────────────────────────────────────
-import os
-import traceback
-from fastapi import Request
-from fastapi.responses import JSONResponse
 
+# ── Global Exception Handler ────────────────────────────────────────
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception: {exc}")
     logger.error(traceback.format_exc())
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal Server Error", "traceback": traceback.format_exc()}
-    )
+    content = {"detail": "Internal Server Error"}
+    if settings.debug:
+        content["traceback"] = traceback.format_exc()
+    return JSONResponse(status_code=500, content=content)
 
+
+# ── Static files (dashboard) ────────────────────────────────────────
 dashboard_dir = os.path.join(os.path.dirname(__file__), "..", "dashboard")
 if os.path.isdir(dashboard_dir):
     app.mount("/dashboard", StaticFiles(directory=dashboard_dir, html=True), name="dashboard")

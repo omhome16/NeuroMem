@@ -100,8 +100,7 @@ async def consolidate(
     if not episodes:
         return {"status": "no_memories", "message": "No unconsolidated memories found."}
 
-    from app.dependencies import get_entity_extractor, get_contradiction_detector, get_surprise_scorer
-    
+
     consolidation_graph = ConsolidationGraph(
         llm_client=llm_client,
         entity_extractor=await get_entity_extractor(),
@@ -130,11 +129,6 @@ async def consolidate(
 
     # Write to Qdrant
     facts_written = 0
-    from app.db.redis_client import get_redis_client
-    from app.core.sim_clock import SimulatedClock
-    redis = await get_redis_client()
-    clock = SimulatedClock(redis)
-    sim_now = await clock.get_now(user_id)
     sim_now_iso = await clock.get_now_iso(user_id)
 
     if semantic_facts:
@@ -249,58 +243,3 @@ async def cleanup_expired(
     result = await episodic_store.delete_expired(user_id, sim_now=sim_now)
     return {"status": "cleaned", "result": result}
 
-
-async def _llm_consolidate(
-    episodes: List[EpisodicMemory], llm_client: LLMClient
-) -> List[dict]:
-    """
-    Use LangChain structured output to compress episodes into semantic facts.
-
-    Attempts with_structured_output() first, falls back to raw JSON parsing.
-    """
-    memory_list = "\n".join(
-        f"- [{m.memory_type.value}] (importance={m.importance:.1f}, "
-        f"recalled={m.recall_count}x) {m.content}"
-        for m in episodes
-    )
-
-    prompt = f"""USER'S EPISODIC MEMORIES ({len(episodes)} entries):
-{memory_list}
-
-Consolidate these into core semantic facts about this user."""
-
-    # Attempt 1: LangChain structured output via with_structured_output()
-    result = await llm_client.structured_output(
-        user_content=prompt,
-        output_schema=ConsolidationResponse,
-        system=CONSOLIDATION_PROMPT,
-        temperature=0.0,
-    )
-
-    if result and isinstance(result, ConsolidationResponse):
-        logger.info("consolidation_structured_success", extra={"facts": len(result.semantic_facts)})
-        return [
-            {"content": f.content, "importance": f.importance, "type": f.type}
-            for f in result.semantic_facts
-        ]
-
-    # Fallback: raw LangChain completion + JSON parsing
-    logger.info("consolidation_structured_fallback")
-    raw = await llm_client.complete(
-        prompt,
-        system=CONSOLIDATION_PROMPT,
-        temperature=0.0,
-    )
-
-    try:
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            lines = cleaned.split("\n")
-            cleaned = "\n".join(
-                lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
-            )
-        data = json.loads(cleaned)
-        return data.get("semantic_facts", [])
-    except json.JSONDecodeError as e:
-        logger.error("consolidation_parse_error", extra={"error": str(e)})
-        return []

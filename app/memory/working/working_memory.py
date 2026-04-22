@@ -97,8 +97,8 @@ class WorkingMemory:
 
         meta["turn_count"] += 1
 
-        # Trigger semantic compression at threshold
-        if meta["turn_count"] == self.COMPRESS_AT_TURN:
+        # Trigger semantic compression periodically (every COMPRESS_AT_TURN turns)
+        if meta["turn_count"] > 0 and meta["turn_count"] % self.COMPRESS_AT_TURN == 0:
             await self._compress_to_summary(user_id, session_id, turns)
 
         # Persist with TTL

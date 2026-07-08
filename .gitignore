@@ -29,8 +29,8 @@ eval/last_report.json
 
 # Model cache
 .cache/
-models/
 
+docs/
 # OS
 .DS_Store
 Thumbs.db
